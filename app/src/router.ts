@@ -1,9 +1,8 @@
-import {createBrowserRouter, redirect} from "react-router-dom";
+import { createBrowserRouter, redirect } from "react-router-dom";
 
 function isAuthenticated(): boolean {
     return !!localStorage.getItem("token");
 }
-
 
 export async function protectedLoader() {
     if (!isAuthenticated()) {
@@ -13,8 +12,8 @@ export async function protectedLoader() {
 }
 
 export async function rootLoader() {
-    const user = isAuthenticated() ? {name: "Paweł"} : null;
-    return {user};
+    const user = isAuthenticated() ? { name: "Paweł" } : null;
+    return { user };
 }
 
 export const router = createBrowserRouter([
@@ -25,14 +24,14 @@ export const router = createBrowserRouter([
         lazy: async () => {
             const mod = await import("./pages/RootLayout");
             const err = await import("./pages/Errors");
-            return {Component: mod.RootLayout, ErrorBoundary: err.RootErrorBoundary};
+            return { Component: mod.RootLayout, ErrorBoundary: err.RootErrorBoundary };
         },
         children: [
             {
                 index: true,
                 lazy: async () => {
                     const mod = await import("./pages/Intro");
-                    return {Component: mod.default};
+                    return { Component: mod.default };
                 },
             },
             {
@@ -40,7 +39,7 @@ export const router = createBrowserRouter([
                 index: true,
                 lazy: async () => {
                     const mod = await import("./pages/Home");
-                    return {Component: mod.default};
+                    return { Component: mod.default };
                 },
             },
             {
@@ -48,7 +47,15 @@ export const router = createBrowserRouter([
                 index: true,
                 lazy: async () => {
                     const mod = await import("./pages/Incidents");
-                    return {Component: mod.default};
+                    return { Component: mod.default };
+                },
+            },
+
+            {
+                path: "incidents/:id",
+                lazy: async () => {
+                    const mod = await import("./pages/IncidentDetails");
+                    return { Component: mod.default };
                 },
             },
             {
@@ -56,14 +63,14 @@ export const router = createBrowserRouter([
                 index: true,
                 lazy: async () => {
                     const mod = await import("./pages/GeoDebug");
-                    return {Component: mod.default};
+                    return { Component: mod.default };
                 },
             },
             {
                 path: "*",
                 lazy: async () => {
                     const mod = await import("./pages/NotFound");
-                    return {Component: mod.default};
+                    return { Component: mod.default };
                 },
             },
         ],
