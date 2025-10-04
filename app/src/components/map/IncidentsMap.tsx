@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
-import { Card, CardContent, Typography, Chip } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { Card, CardContent, Typography, Chip, Dialog, Slide, IconButton, Box } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import type { Incident } from "../../types/incident";
+import IncidentDetails from "../../pages/IncidentDetails";
 
 const containerStyle = {
     width: "100%",
@@ -41,9 +42,12 @@ const sampleIncidents: Incident[] = [
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
 
+// 🔄 animacja otwierania modala
+const Transition = Slide as any;
+
 export const IncidentsMap: React.FC = () => {
     const [selected, setSelected] = useState<Incident | null>(null);
-    const navigate = useNavigate();
+    const [showDetails, setShowDetails] = useState(false);
 
     const center = useMemo(() => DEFAULT_CENTER, []);
 
@@ -100,7 +104,7 @@ export const IncidentsMap: React.FC = () => {
                                     size="small"
                                     sx={{ mb: 1 }}
                                 />
-                                {/* 🔽 przycisk przenoszący do szczegółów */}
+                                {/* 🔽 otwórz modal zamiast nawigacji */}
                                 <Typography
                                     variant="body2"
                                     color="primary"
@@ -109,7 +113,7 @@ export const IncidentsMap: React.FC = () => {
                                         cursor: "pointer",
                                         textDecoration: "underline",
                                     }}
-                                    onClick={() => navigate(`/travel/${selected.id}`)}
+                                    onClick={() => setShowDetails(true)}
                                 >
                                     Zobacz szczegóły →
                                 </Typography>
@@ -117,6 +121,39 @@ export const IncidentsMap: React.FC = () => {
                         </Card>
                     </InfoWindow>
                 )}
+
+                {/* 🔽 Modal ze szczegółami incydentu */}
+                <Dialog
+                    open={showDetails}
+                    onClose={() => setShowDetails(false)}
+                    maxWidth="md"
+                    fullWidth
+                    TransitionComponent={Transition}
+                    PaperProps={{
+                        sx: {
+                            borderRadius: "16px",
+                            backdropFilter: "blur(6px)",
+                            boxShadow: 10,
+                            overflow: "hidden",
+                        },
+                    }}
+                >
+                    <Box sx={{ position: "relative" }}>
+                        <IconButton
+                            onClick={() => setShowDetails(false)}
+                            sx={{
+                                position: "absolute",
+                                top: 8,
+                                right: 8,
+                                color: "grey.600",
+                                zIndex: 1,
+                            }}
+                        >
+                            <CloseIcon />
+                        </IconButton>
+                        {selected && <IncidentDetails />}
+                    </Box>
+                </Dialog>
             </GoogleMap>
         </LoadScript>
     );

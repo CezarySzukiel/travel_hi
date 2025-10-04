@@ -11,8 +11,10 @@ import {
     CircularProgress,
     Snackbar,
     Alert,
+    IconButton,
 } from "@mui/material";
-import { useParams, useNavigate } from "react-router-dom";
+import CloseIcon from "@mui/icons-material/Close";
+import { useParams } from "react-router-dom";
 import { ENV } from "../config/env";
 
 interface Incident {
@@ -27,9 +29,12 @@ interface Incident {
     helpfulCount?: number;
 }
 
-const IncidentDetails: React.FC = () => {
+interface Props {
+    onClose?: () => void;
+}
+
+const IncidentDetails: React.FC<Props> = ({ onClose }) => {
     const { id } = useParams<{ id: string }>();
-    const navigate = useNavigate();
     const [incident, setIncident] = useState<Incident | null>(null);
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState({
@@ -38,7 +43,6 @@ const IncidentDetails: React.FC = () => {
         severity: "success" as "success" | "error",
     });
 
-    // 🔄 Pobieranie danych z backendu
     useEffect(() => {
         const fetchIncident = async () => {
             try {
@@ -46,15 +50,27 @@ const IncidentDetails: React.FC = () => {
                 if (!res.ok) throw new Error(`Błąd API: ${res.status}`);
                 const data = await res.json();
 
+                // ✅ Bezpieczne przypisanie pól z fallbackami
+                const safeSeverity: "low" | "medium" | "high" =
+                    data.severity === "low" || data.severity === "medium" || data.severity === "high"
+                        ? data.severity
+                        : "medium";
+
+                const safeType = data.type || "other";
+
                 setIncident({
                     ...data,
+                    type: safeType,
                     photo_url:
                         data.photo_url ||
-                        (data.type === "accident"
+                        (safeType === "accident"
                             ? "https://kolejowyportal.pl/files/su160-009.jpg.webp"
                             : "https://images.unsplash.com/photo-1509395176047-4a66953fd231"),
-                    severity: data.severity || "medium",
+                    severity: safeSeverity,
                     status: data.status || "pending",
+                    description:
+                        data.description ||
+                        "Brak opisu szczegółowego dla tego zgłoszenia.",
                     helpfulCount: data.helpfulCount || 0,
                 });
             } catch (err: any) {
@@ -67,6 +83,9 @@ const IncidentDetails: React.FC = () => {
                     photo_url: "https://kolejowyportal.pl/files/su160-009.jpg.webp",
                     created_at: "2025-10-04",
                     description: "Awaria lokomotywy – Kraków Główny. Opóźnienie 40 minut.",
+                    severity: "medium",
+                    status: "pending",
+                    helpfulCount: 3,
                 });
                 setToast({
                     open: true,
@@ -81,7 +100,6 @@ const IncidentDetails: React.FC = () => {
         fetchIncident();
     }, [id]);
 
-    // 👍 Głos “Pomocne”
     const handleVoteHelpful = async () => {
         try {
             const res = await fetch(`${ENV.API_BASE_URL}/incidents/${id}/vote`, {
@@ -117,12 +135,15 @@ const IncidentDetails: React.FC = () => {
         );
     }
 
-    const severityColor =
-        incident.severity === "high"
-            ? "error"
-            : incident.severity === "medium"
-                ? "warning"
-                : "success";
+    // ✅ Mapowanie poziomów trudności na kolory + etykiety
+    const severityMap: Record<"low" | "medium" | "high", { color: any; label: string }> = {
+        low: { color: "success", label: "Niski" },
+        medium: { color: "warning", label: "Średni" },
+        high: { color: "error", label: "Wysoki" },
+    };
+
+    const { color: severityColor, label: severityLabel } =
+        severityMap[incident.severity ?? "medium"];
 
     const statusLabel =
         incident.status === "pending"
@@ -132,8 +153,26 @@ const IncidentDetails: React.FC = () => {
                 : "Zamknięte";
 
     return (
-        <Box sx={{ maxWidth: 700, mx: "auto", mt: 4 }}>
-            <Card sx={{ boxShadow: 4 }}>
+        <Box sx={{ position: "relative", maxWidth: 700, mx: "auto", mt: 2, pb: 2 }}>
+            {/* ❌ Ikonka zamykania */}
+            {onClose && (
+                <IconButton
+                    onClick={onClose}
+                    sx={{
+                        position: "absolute",
+                        top: 8,
+                        right: 8,
+                        color: "grey.600",
+                        zIndex: 10,
+                        bgcolor: "rgba(255,255,255,0.7)",
+                        "&:hover": { bgcolor: "rgba(255,255,255,0.9)" },
+                    }}
+                >
+                    <CloseIcon />
+                </IconButton>
+            )}
+
+            <Card sx={{ boxShadow: 6 }}>
                 {incident.photo_url && (
                     <CardMedia
                         component="img"
@@ -151,13 +190,12 @@ const IncidentDetails: React.FC = () => {
                     </Typography>
 
                     <Stack direction="row" spacing={1} mb={2}>
-                        <Chip label={`Poziom: ${incident.severity}`} color={severityColor} />
+                        <Chip label={`Poziom: ${severityLabel}`} color={severityColor} />
                         <Chip label={statusLabel} variant="outlined" />
                     </Stack>
 
                     <Typography variant="body1" paragraph>
-                        {incident.description ||
-                            "Brak opisu szczegółowego dla tego zgłoszenia."}
+                        {incident.description}
                     </Typography>
 
                     <Typography variant="body2" color="text.secondary">
@@ -171,16 +209,6 @@ const IncidentDetails: React.FC = () => {
                         <Typography variant="body2" color="text.secondary">
                             {incident.helpfulCount ?? 0} głosów
                         </Typography>
-                    </Stack>
-
-                    <Stack direction="row" justifyContent="flex-end" mt={2}>
-                        <Button
-                            variant="text"
-                            onClick={() => navigate("/travel")}
-                            sx={{ textTransform: "none" }}
-                        >
-                            ← Wróć do mapy
-                        </Button>
                     </Stack>
                 </CardContent>
             </Card>
