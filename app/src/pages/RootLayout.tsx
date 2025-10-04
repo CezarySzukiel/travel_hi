@@ -10,7 +10,7 @@ export function RootLayout() {
         <nav style={{ display: "flex", gap: 12 }}>
           <NavLink to="/" end>Intro</NavLink>
           <NavLink to="/dashboard">Home</NavLink>
-          <NavLink to="/debug">Debug</NavLink>
+          <NavLink to="/de">Debug</NavLink>
         </nav>
         <div style={{ marginLeft: "auto" }}>
           {data?.user ? `Witaj, ${data.user.name}` : <NavLink to="/login">Zaloguj</NavLink>}
