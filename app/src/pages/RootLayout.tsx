@@ -8,9 +8,9 @@ export function RootLayout() {
       <header style={{ display: "flex", gap: 16, alignItems: "center" }}>
         <Link to="/" style={{ fontWeight: 700 }}>Travel Hi</Link>
         <nav style={{ display: "flex", gap: 12 }}>
-          <NavLink to="/" end>Home</NavLink>
-          <NavLink to="/dashboard">Dashboard</NavLink>
-          <NavLink to="/settings">Ustawienia</NavLink>
+          <NavLink to="/" end>Intro</NavLink>
+          <NavLink to="/dashboard">Home</NavLink>
+          <NavLink to="/debug">Debug</NavLink>
         </nav>
         <div style={{ marginLeft: "auto" }}>
           {data?.user ? `Witaj, ${data.user.name}` : <NavLink to="/login">Zaloguj</NavLink>}
