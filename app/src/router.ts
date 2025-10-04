@@ -28,6 +28,7 @@ export const router = createBrowserRouter([
         },
         children: [
             {
+                path: "",
                 index: true,
                 lazy: async () => {
                     const mod = await import("./pages/Intro");
@@ -35,7 +36,7 @@ export const router = createBrowserRouter([
                 },
             },
             {
-                path: "dashboard",
+                path: "events",
                 index: true,
                 lazy: async () => {
                     const mod = await import("./pages/Home");
@@ -43,7 +44,7 @@ export const router = createBrowserRouter([
                 },
             },
             {
-                path: "incidents",
+                path: "travel",
                 index: true,
                 lazy: async () => {
                     const mod = await import("./pages/Incidents");
