@@ -1,7 +1,6 @@
 import enum
 from sqlalchemy import Enum, String, Integer, Float, Text, DateTime, text
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql import func
 from app.db.database import Base
 
 
