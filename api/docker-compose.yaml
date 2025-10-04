@@ -1,0 +1,20 @@
+services:
+  travel_hi_api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    env_file:
+      - ./.envs/.env
+    ports:
+      - "8090:80"
+    working_dir: /api
+    networks:
+      - backend_network
+    volumes:
+      - ./api:/api
+    healthcheck:
+      test: [ "CMD", "bash", "-lc", "curl -sf http://127.0.0.1:80/health || exit 1" ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s

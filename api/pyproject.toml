@@ -1,0 +1,48 @@
+[project]
+name = "travel_hi_api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "alembic==1.16.2",
+    "apscheduler>=3.11.0",
+    "argon2-cffi>=25.1.0",
+    "asyncpg==0.30.0",
+    "fastapi[standard]==0.115.14",
+    "greenlet==3.2.3",
+    "mypy>=1.16.1",
+    "psycopg[binary]==3.2.9",
+    "pydantic-settings==2.10.1",
+    "python-dotenv==1.1.1",
+    "python-jose>=3.5.0",
+    "ruff>=0.12.1",
+    "selenium>=4.35.0",
+    "sqlalchemy==2.0.41",
+    "typer>=0.16.0",
+    "uvicorn>=0.35.0",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.16.1",
+    "pytest>=8.4.1",
+    "ruff>=0.12.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+python_files = "test_*.py"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unused_configs = true
+pretty = true
+show_error_codes = true
+plugins = []
+follow_imports = "normal"
+ignore_missing_imports = false
+
+

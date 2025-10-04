@@ -1,0 +1,48 @@
+target-version = "py313"
+line-length = 120
+indent-width = 4
+
+[lint]
+
+select = [
+    "E", # pycodestyle
+    "F", # pyflakes
+    "B", # flake8-bugbear
+    "I", # isort
+    "UP", # pyupgrade
+    "N", # pep8-naming
+    "S", # flake8-bandit
+    "C4", # flake8-comprehensions
+    "RUF", # dodatkowe checki Ruff
+]
+ignore = [
+    "S311", # Standard pseudo-random generator is not suitable for cryptographic purposes
+]
+
+[format]
+line-ending = "auto"
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+docstring-code-format = true
+docstring-code-line-length = 100
+
+# isort
+[lint.isort]
+force-single-line = false
+combine-as-imports = true
+known-first-party = ["app", "tests"]
+order-by-type = true
+
+# flake8-bugbear
+[lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends"]
+
+# pep8-naming
+[lint.pep8-naming]
+classmethod-decorators = ["classmethod"]
+staticmethod-decorators = ["staticmethod"]
+
+# pyupgrade
+[lint.pyupgrade]
+keep-runtime-typing = false
