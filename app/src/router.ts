@@ -53,7 +53,7 @@ export const router = createBrowserRouter([
             },
 
             {
-                path: "incidents/:id",
+                path: "travel/:id",
                 lazy: async () => {
                     const mod = await import("./pages/IncidentDetails");
                     return { Component: mod.default };

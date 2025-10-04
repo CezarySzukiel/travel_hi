@@ -12,24 +12,24 @@ import {
     Snackbar,
     Alert,
 } from "@mui/material";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { ENV } from "../config/env";
 
 interface Incident {
-    id: string;
-    title: string;
-    description: string;
-    severity: "low" | "medium" | "high";
-    lat: number;
-    lng: number;
-    photoUrl?: string;
+    id: number;
+    type: string;
+    location: { lat: number; lng: number };
+    photo_url?: string;
+    created_at?: string;
+    description?: string;
+    severity?: "low" | "medium" | "high";
     status?: "pending" | "verified" | "resolved";
     helpfulCount?: number;
-    type?: string; // ← dodajemy, żeby wiedzieć jaki to typ
 }
 
 const IncidentDetails: React.FC = () => {
-    const { id } = useParams();
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
     const [incident, setIncident] = useState<Incident | null>(null);
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState({
@@ -38,50 +38,40 @@ const IncidentDetails: React.FC = () => {
         severity: "success" as "success" | "error",
     });
 
+    // 🔄 Pobieranie danych z backendu
     useEffect(() => {
         const fetchIncident = async () => {
             try {
                 const res = await fetch(`${ENV.API_BASE_URL}/incidents/${id}`);
-                if (!res.ok) throw new Error("Błąd pobierania danych incydentu");
+                if (!res.ok) throw new Error(`Błąd API: ${res.status}`);
                 const data = await res.json();
 
-                // 🧩 Bezpieczne przypisanie zdjęcia (jeśli brak w API)
-                const defaultPhoto =
-                    data.type === "accident"
-                        ? "https://kolejowyportal.pl/files/su160-009.jpg.webp"
-                        : "https://images.unsplash.com/photo-1509395176047-4a66953fd231";
-
                 setIncident({
-                    id: data.id,
-                    title:
-                        data.title ||
+                    ...data,
+                    photo_url:
+                        data.photo_url ||
                         (data.type === "accident"
-                            ? "Awaria lokomotywy – zgłoszenie"
-                            : "Zgłoszone utrudnienie"),
-                    description:
-                        data.description ||
-                        "Szczegóły tego zgłoszenia nie zostały jeszcze uzupełnione.",
+                            ? "https://kolejowyportal.pl/files/su160-009.jpg.webp"
+                            : "https://images.unsplash.com/photo-1509395176047-4a66953fd231"),
                     severity: data.severity || "medium",
-                    lat: data.location?.lat ?? 0,
-                    lng: data.location?.lng ?? 0,
-                    photoUrl: data.photo_url || defaultPhoto,
                     status: data.status || "pending",
                     helpfulCount: data.helpfulCount || 0,
-                    type: data.type,
                 });
-            } catch {
-                // 🔧 Fallback lokalny (mock)
+            } catch (err: any) {
+                console.error(err);
+                // fallback lokalny
                 setIncident({
-                    id: id || "1",
-                    title: "Awaria lokomotywy – Kraków Główny",
-                    description: "Pociąg opóźniony o 40 minut z powodu awarii lokomotywy.",
-                    severity: "medium",
-                    lat: 52.2297,
-                    lng: 21.0122,
-                    photoUrl: "https://kolejowyportal.pl/files/su160-009.jpg.webp",
-                    status: "pending",
-                    helpfulCount: 3,
+                    id: Number(id),
                     type: "accident",
+                    location: { lat: 50.06, lng: 19.94 },
+                    photo_url: "https://kolejowyportal.pl/files/su160-009.jpg.webp",
+                    created_at: "2025-10-04",
+                    description: "Awaria lokomotywy – Kraków Główny. Opóźnienie 40 minut.",
+                });
+                setToast({
+                    open: true,
+                    msg: "Nie udało się połączyć z API, pokazano dane przykładowe.",
+                    severity: "error",
                 });
             } finally {
                 setLoading(false);
@@ -91,6 +81,7 @@ const IncidentDetails: React.FC = () => {
         fetchIncident();
     }, [id]);
 
+    // 👍 Głos “Pomocne”
     const handleVoteHelpful = async () => {
         try {
             const res = await fetch(`${ENV.API_BASE_URL}/incidents/${id}/vote`, {
@@ -100,7 +91,11 @@ const IncidentDetails: React.FC = () => {
             setIncident((prev) =>
                 prev ? { ...prev, helpfulCount: (prev.helpfulCount ?? 0) + 1 } : prev
             );
-            setToast({ open: true, msg: "Dziękujemy za Twój głos 👍", severity: "success" });
+            setToast({
+                open: true,
+                msg: "Dziękujemy za Twój głos 👍",
+                severity: "success",
+            });
         } catch (err: any) {
             setToast({ open: true, msg: err.message, severity: "error" });
         }
@@ -131,7 +126,7 @@ const IncidentDetails: React.FC = () => {
 
     const statusLabel =
         incident.status === "pending"
-            ? "Oczekuje na rozwiązanie"
+            ? "Oczekuje na weryfikację"
             : incident.status === "verified"
                 ? "Zatwierdzone"
                 : "Zamknięte";
@@ -139,18 +134,20 @@ const IncidentDetails: React.FC = () => {
     return (
         <Box sx={{ maxWidth: 700, mx: "auto", mt: 4 }}>
             <Card sx={{ boxShadow: 4 }}>
-                {incident.photoUrl && (
+                {incident.photo_url && (
                     <CardMedia
                         component="img"
                         height="300"
-                        image={incident.photoUrl}
-                        alt={incident.title}
+                        image={incident.photo_url}
+                        alt={incident.type}
                         sx={{ objectFit: "cover" }}
                     />
                 )}
                 <CardContent>
                     <Typography variant="h5" fontWeight={700} gutterBottom>
-                        {incident.title}
+                        {incident.type === "accident"
+                            ? "Awaria lokomotywy"
+                            : "Utrudnienie na trasie"}
                     </Typography>
 
                     <Stack direction="row" spacing={1} mb={2}>
@@ -159,16 +156,31 @@ const IncidentDetails: React.FC = () => {
                     </Stack>
 
                     <Typography variant="body1" paragraph>
-                        {incident.description}
+                        {incident.description ||
+                            "Brak opisu szczegółowego dla tego zgłoszenia."}
                     </Typography>
 
-                    <Stack direction="row" spacing={2} alignItems="center" mt={2}>
+                    <Typography variant="body2" color="text.secondary">
+                        📍 Lokalizacja: {incident.location.lat}, {incident.location.lng}
+                    </Typography>
+
+                    <Stack direction="row" spacing={2} alignItems="center" mt={3}>
                         <Button variant="contained" onClick={handleVoteHelpful}>
                             👍 Pomocne
                         </Button>
                         <Typography variant="body2" color="text.secondary">
                             {incident.helpfulCount ?? 0} głosów
                         </Typography>
+                    </Stack>
+
+                    <Stack direction="row" justifyContent="flex-end" mt={2}>
+                        <Button
+                            variant="text"
+                            onClick={() => navigate("/travel")}
+                            sx={{ textTransform: "none" }}
+                        >
+                            ← Wróć do mapy
+                        </Button>
                     </Stack>
                 </CardContent>
             </Card>
