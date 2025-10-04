@@ -19,23 +19,25 @@ def get_service(session: Session = Depends(get_session)) -> ReportService:
 def create_report(
         request: Request,
         type: ReportType = Form(...),
-        description: str = Form(...),
         lat: float = Form(...),
-        lon: float = Form(...),
+        lng: float = Form(...),
         photo: UploadFile | None = File(default=None),
         svc: ReportService = Depends(get_service),
 ):
+
     try:
-        loc = Location(lat=lat, lon=lon)
+        loc = Location(lat=lat, lng=lng)
     except ValidationError:
         raise HTTPException(
             status_code=422,
             detail="Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180."
         )
+    if not lat and not lng:
+        raise HTTPException(status_code=422, detail="Localisation is required.")
 
     photo_name = validate_and_store_image(photo) if photo and photo.filename else None
 
-    obj = svc.create(type_=type, description=description, lat=lat, lon=lon, photo_path=photo_name)
+    obj = svc.create(type_=type, lat=lat, lng=lng, photo_path=photo_name)
     base = str(request.base_url).rstrip("/")
     return ReportRead.from_orm_with_photo(obj, base_url=base)
 
