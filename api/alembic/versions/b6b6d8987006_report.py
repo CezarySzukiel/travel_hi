@@ -1,8 +1,8 @@
-"""init report
+"""report
 
-Revision ID: f71641204a1c
-Revises: 
-Create Date: 2025-10-04 17:12:02.271771
+Revision ID: b6b6d8987006
+Revises: 278812250ec5
+Create Date: 2025-10-04 19:01:52.686220
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'f71641204a1c'
-down_revision: Union[str, Sequence[str], None] = None
+revision: str = 'b6b6d8987006'
+down_revision: Union[str, Sequence[str], None] = '278812250ec5'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -28,7 +28,7 @@ def upgrade() -> None:
     sa.Column('latitude', sa.Float(), nullable=False),
     sa.Column('longitude', sa.Float(), nullable=False),
     sa.Column('photo_path', sa.String(length=512), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text("(datetime('now'))"), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_reports_id'), 'reports', ['id'], unique=False)
