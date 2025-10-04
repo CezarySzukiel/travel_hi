@@ -1,5 +1,8 @@
 from pydantic import Field
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+load_dotenv(".env/.env")
 
 
 class Settings(BaseSettings):
@@ -22,6 +25,9 @@ class Settings(BaseSettings):
 
     DB_CONNECT_RETRIES: int = 10
     DB_CONNECT_BACKOFF_S: float = 1.5
+
+    MAX_IMAGE_BYTES: int = 5 * 1024 * 1024  # 5 MB
+    IMAGES_UPLOAD_DIR: str = Field("uploaded_images", alias="IMAGES_UPLOAD_DIR")
 
     @property
     def DATABASE_URL(self) -> str:

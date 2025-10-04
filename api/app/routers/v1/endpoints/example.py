@@ -17,7 +17,7 @@ fake_users_db: List[User] = [
     User(id=2, name="Bob", email="bob@example.com"),
 ]
 
-@router.get("/", response_model=List[User])
+@router.get("/users", response_model=List[User])
 async def list_users() -> List[User]:
     return fake_users_db
 
