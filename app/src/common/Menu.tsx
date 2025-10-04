@@ -13,6 +13,9 @@ export default function Menu() {
             <ListItemButton component={RouterLink} to="/travel">
                 <ListItemText primary="Twoja podróż"/>
             </ListItemButton>
+            <ListItemButton component={RouterLink} to="/planner">
+                <ListItemText primary="Planuj"/>
+            </ListItemButton>
             <Divider/>
             <ListItemButton component={RouterLink} to="/debug">
                 <ListItemText primary="O projekcie"/>

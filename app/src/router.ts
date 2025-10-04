@@ -60,6 +60,14 @@ export const router = createBrowserRouter([
                     return {Component: mod.default};
                 },
             },
+             {
+                path: "planner",
+                index: true,
+                lazy: async () => {
+                    const mod = await import("./pages/Planner");
+                    return {Component: mod.default};
+                },
+            },
             {
                 path: "*",
                 lazy: async () => {
