@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
-from app.routers.v1.endpoints import example
+from app.routers.v1.endpoints import event
 
 api_router = APIRouter()
 
-api_router.include_router(example.router, prefix="", tags=[""])
+api_router.include_router(event.router, prefix="/events", tags=["Events"])

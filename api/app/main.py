@@ -14,10 +14,3 @@ app.include_router(api_router, prefix="/api/v1")
 @app.get("/health")
 async def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
-
-
-@app.get("/events")
-def list_events(session: Session = Depends(get_session)):
-    # przykładowe zapytanie:
-    # rows = session.query(Event).limit(50).all()
-    return []
