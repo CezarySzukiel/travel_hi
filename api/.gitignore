@@ -2,3 +2,7 @@
 .venv
 .idea
 .vscode
+
+api/app.db
+app.db
+.env
