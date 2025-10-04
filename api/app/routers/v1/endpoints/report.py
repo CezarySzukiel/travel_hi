@@ -15,7 +15,7 @@ def get_service(session: Session = Depends(get_session)) -> ReportService:
     return ReportService(ReportRepository(session))
 
 
-@router.post("/reports", response_model=ReportRead, status_code=201)
+@router.post("/incidents", response_model=ReportRead, status_code=201)
 def create_report(
         request: Request,
         type: ReportType = Form(...),
@@ -40,7 +40,7 @@ def create_report(
     return ReportRead.from_orm_with_photo(obj, base_url=base)
 
 
-@router.get("/reports/{report_id}", response_model=ReportRead, status_code=200)
+@router.get("/incidents/{incident_id}", response_model=ReportRead, status_code=200)
 def get_report(report_id: int, request: Request, svc: ReportService = Depends(get_service)):
     obj = svc.get(report_id)
     if not obj:
@@ -49,7 +49,7 @@ def get_report(report_id: int, request: Request, svc: ReportService = Depends(ge
     return ReportRead.from_orm_with_photo(obj, base_url=base)
 
 
-@router.get("/reports", response_model=ReportList, status_code=200)
+@router.get("/incidents", response_model=ReportList, status_code=200)
 def list_reports(
     request: Request,
     skip: int = Query(0, ge=0, description="Number of items to skip"),
