@@ -13,7 +13,7 @@ export default function ReportIncidentTile() {
                 </Typography>
             </CardContent>
             <CardActions>
-                <Button startIcon={<ReportProblemIcon/>} variant="contained" onClick={() => nav("/incidents/report")}>
+                <Button startIcon={<ReportProblemIcon/>} variant="contained" onClick={() => nav("/travel")}>
                     Zgłoś
                 </Button>
             </CardActions>
