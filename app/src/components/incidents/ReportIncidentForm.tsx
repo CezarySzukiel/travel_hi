@@ -29,8 +29,22 @@ const DEFAULT_POINT = { lat: 50.067549, lng: 19.991471 };
 
 // ✅ Schemat walidacji
 const schema = z.object({
-    username: z.string().min(3, "Podaj nazwę użytkownika"),
-    description: z.string().min(5, "Dodaj krótki opis zdarzenia"),
+    username: z
+        .string()
+        .trim()
+        .optional()
+        .transform((v) => v || null)
+        .refine((v) => !v || v.length >= 3, {
+            message: "Nazwa użytkownika powinna mieć co najmniej 3 znaki",
+        }),
+    description: z
+        .string()
+        .trim()
+        .optional()
+        .transform((v) => v || null)
+        .refine((v) => !v || v.length >= 5, {
+            message: "Opis powinien mieć co najmniej 5 znaków",
+        }),
     type: z.enum(["accident", "roadwork", "roadblock", "delay", "other"]),
     lat: z.coerce.number().refine(Number.isFinite, "Wymagana lokalizacja"),
     lng: z.coerce.number().refine(Number.isFinite, "Wymagana lokalizacja"),
@@ -178,7 +192,6 @@ export const ReportIncidentForm: React.FC = () => {
             fd.append("lng", String(values.lng));
             const file = values.photo ?? null;
             if (file) fd.append("photo", file);
-
             const res = await fetch(`${ENV.API_BASE_URL}/incidents`, {
                 method: "POST",
                 body: fd,
