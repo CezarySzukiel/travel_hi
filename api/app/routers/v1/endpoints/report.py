@@ -24,7 +24,7 @@ from app.utils.moderation import moderate_text
 from app.core.security import oauth2_scheme
 from app.repositories.auth import authenticate_user
 from app.schemas.user import User
-from app.core.rbac import get_current_active_user
+from app.core.rbac import get_current_active_user, get_current_user
 
 router = APIRouter()
 
@@ -43,6 +43,8 @@ async def create_report(
         description: str | None = Form(None, description="Optional description"),
         photo: UploadFile | None = File(default=None),
         svc: ReportService = Depends(get_service),
+        token: str = Depends(oauth2_scheme),
+        db=Depends(get_session),
 ):
     try:
         Location(lat=lat, lng=lng)
@@ -51,6 +53,14 @@ async def create_report(
             status_code=422,
             detail="Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180.",
         )
+
+    user = None
+    if token:
+        try:
+            user = await get_current_user(token=token, db=db)
+            print("✅ Authenticated user:", user.username)
+        except HTTPException:
+            user = None
 
     if description:
         moderate_description = moderate_text(description)

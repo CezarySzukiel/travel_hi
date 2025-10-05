@@ -38,34 +38,35 @@ class ReportRepository:
         res = self.session.execute(select(Report).where(Report.id == id_))
         return res.scalar_one_or_none()
 
-    def list_(self, *, skip: int, limit: int) -> tuple[list[Report], int]:
+    def list_in_radius(self, *, lat: float, lng: float, radius_km: float, skip: int, limit: int
+    ) -> tuple[list[Report], int]:
         q = select(Report).order_by(Report.created_at.desc()).offset(skip).limit(limit)
         res = self.session.execute(q)
         items = list(res.scalars().all())
         total = self.session.scalar(select(func.count()).select_from(Report))
         return items, int(total)
 
-    def list_in_radius(
-            self, *, lat: float, lng: float, radius_km: float, skip: int, limit: int
-    ) -> tuple[list[Report], int]:
-        q = select(Report)
-        reports = list(self.session.execute(q).scalars().all())
-
-        def haversine(lat1, lng1, lat2, lng2):
-            R = 6371  # promień Ziemi w km
-            dlat = radians(lat2 - lat1)
-            dlng = radians(lng2 - lng1)
-            a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlng / 2) ** 2
-            c = 2 * atan2(sqrt(a), sqrt(1 - a))
-            return R * c
-
-        filtered = [
-            r for r in reports
-            if haversine(lat, lng, r.latitude, r.longitude) <= radius_km
-        ]
-
-        total = len(filtered)
-        return filtered[skip: skip + limit], total
+    # def list_in_radius(
+    #         self, *, lat: float, lng: float, radius_km: float, skip: int, limit: int
+    # ) -> tuple[list[Report], int]:
+    #     q = select(Report)
+    #     reports = list(self.session.execute(q).scalars().all())
+    #
+    #     def haversine(lat1, lng1, lat2, lng2):
+    #         R = 6371  # promień Ziemi w km
+    #         dlat = radians(lat2 - lat1)
+    #         dlng = radians(lng2 - lng1)
+    #         a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlng / 2) ** 2
+    #         c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    #         return R * c
+    #
+    #     filtered = [
+    #         r for r in reports
+    #         if haversine(lat, lng, r.latitude, r.longitude) <= radius_km
+    #     ]
+    #
+    #     total = len(filtered)
+    #     return filtered[skip: skip + limit], total
 
     def increment_counter(self, id_: int, field: str) -> Report | None:
         """

@@ -22,3 +22,4 @@ class User(Base):
     role = Column(Enum(Role), default=Role.USER, nullable=False)
     permissions = Column(MutableList.as_mutable(JSON), default=list, nullable=False)
     disabled = Column(Boolean, default=False)
+    points = Column(Integer, default=0, nullable=False)
