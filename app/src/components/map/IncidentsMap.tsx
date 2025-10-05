@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { GoogleMap, LoadScript, Marker, InfoWindow } from "@react-google-maps/api";
-import { Card, CardContent, Typography, Chip, Dialog, Slide, IconButton, Box } from "@mui/material";
+import { Card, CardContent, Typography, Dialog, Slide, IconButton, Box } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import type { Incident } from "../../types/incident";
 import IncidentDetails from "../../pages/IncidentDetails";
@@ -13,46 +13,39 @@ const containerStyle = {
 
 const DEFAULT_CENTER = { lat: 50.067549, lng: 19.991471 };
 
-const sampleIncidents: Incident[] = [
+// 🔹 uproszczone dane bez severity
+const sampleIncidents: Omit<Incident, "severity">[] = [
     {
         id: "1",
         title: "Awaria lokomotywy — Kraków Główny",
         description: "Opóźnienie pociągu o 40 minut z powodu awarii.",
-        severity: "high",
         lat: 50.065,
         lng: 19.945,
     },
     {
         id: "2",
-        title: "Roboty na torach — Katowice",
-        description: "Utrudnienia w ruchu pociągów, prace potrwają do 18:00.",
-        severity: "medium",
-        lat: 50.25,
-        lng: 19.02,
+        title: "Roboty torowe — Tarnów",
+        description: "Prace konserwacyjne torowiska, opóźnienia do 20 minut.",
+        lat: 50.013,
+        lng: 20.986,
     },
     {
         id: "3",
-        title: "Zamknięcie toru — Warszawa Zachodnia",
-        description: "Ruch jednotorowy do odwołania.",
-        severity: "low",
-        lat: 52.225,
-        lng: 21.005,
+        title: "Zamknięcie toru — Nowy Sącz",
+        description: "Awaria trakcji. Pociągi kursują objazdem.",
+        lat: 49.623,
+        lng: 20.697,
     },
 ];
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
-
-// 🔄 animacja otwierania modala
 const Transition = Slide as any;
 
 export const IncidentsMap: React.FC = () => {
-    const [selected, setSelected] = useState<Incident | null>(null);
+    const [selected, setSelected] = useState<Omit<Incident, "severity"> | null>(null);
     const [showDetails, setShowDetails] = useState(false);
 
     const center = useMemo(() => DEFAULT_CENTER, []);
-
-    const colorFor = (severity: Incident["severity"]) =>
-        severity === "high" ? "red" : severity === "medium" ? "orange" : "yellow";
 
     return (
         <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
@@ -72,9 +65,7 @@ export const IncidentsMap: React.FC = () => {
                         position={{ lat: incident.lat, lng: incident.lng }}
                         onClick={() => setSelected(incident)}
                         icon={{
-                            url: `http://maps.google.com/mapfiles/ms/icons/${colorFor(
-                                incident.severity
-                            )}-dot.png`,
+                            url: "http://maps.google.com/mapfiles/ms/icons/red-dot.png",
                         }}
                     />
                 ))}
@@ -92,19 +83,6 @@ export const IncidentsMap: React.FC = () => {
                                 <Typography variant="body2" sx={{ my: 1 }}>
                                     {selected.description}
                                 </Typography>
-                                <Chip
-                                    label={`Poziom: ${selected.severity}`}
-                                    color={
-                                        selected.severity === "high"
-                                            ? "error"
-                                            : selected.severity === "medium"
-                                                ? "warning"
-                                                : "default"
-                                    }
-                                    size="small"
-                                    sx={{ mb: 1 }}
-                                />
-                                {/* 🔽 otwórz modal zamiast nawigacji */}
                                 <Typography
                                     variant="body2"
                                     color="primary"
@@ -122,7 +100,6 @@ export const IncidentsMap: React.FC = () => {
                     </InfoWindow>
                 )}
 
-                {/* 🔽 Modal ze szczegółami incydentu */}
                 <Dialog
                     open={showDetails}
                     onClose={() => setShowDetails(false)}
