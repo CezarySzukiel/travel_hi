@@ -3,9 +3,17 @@ from enum import Enum
 
 
 class ReportType(str, Enum):
+    # Ruch drogowy
     ACCIDENT = "accident"
+    TRAFFIC_JAM = "traffic_jam"
+    ROADBLOCK = "roadblock"
     ROADWORK = "roadwork"
-    CLOSURE = "closure"
+    SLIPPERY_ROAD = "slippery_road"
+    OBJECT_ON_ROAD = "object_on_road"
+    # Transport publiczny
+    DELAY = "delay"
+
+    # Bezpieczeństwo i awarie
     POLICE = "police"
     OTHER = "other"
 
@@ -18,26 +26,55 @@ class Location(BaseModel):
 class ReportCreate(BaseModel):
     type: ReportType
     location: Location
+    name: str | None = Field(None, max_length=128)
+    description: str | None = Field(None, max_length=2000)
+    photo_url: str | None = None
 
 
 class ReportRead(BaseModel):
+    """
+    Schemat odpowiedzi zwracanej użytkownikowi (np. GET /reports).
+    """
     model_config = ConfigDict(from_attributes=True)
+
     id: int
     type: ReportType
+    name: str | None = None
+    description: str | None = None
     location: Location
-    photo_url: str | None
+    photo_url: str | None = None
+    likes: int
+    confirmations: int
+    denials: int
     created_at: str
 
     @classmethod
     def from_orm_with_photo(cls, obj, base_url: str | None = None):
         loc = Location(lat=obj.latitude, lng=obj.longitude)
-        url = None
+        photo_url = None
         if obj.photo_path and base_url:
-            url = f"{base_url}/files/{obj.photo_path.split('/')[-1]}"
-        return cls(id=obj.id, type=obj.type, location=loc, photo_url=url,
-                   created_at=obj.created_at.isoformat())
+            photo_url = f"{base_url}/files/{obj.photo_path.split('/')[-1]}"
+
+        return cls(
+            id=obj.id,
+            type=obj.type,
+            name=obj.name,
+            description=obj.description,
+            location=loc,
+            photo_url=photo_url,
+            likes=obj.likes,
+            confirmations=obj.confirmations,
+            denials=obj.denials,
+            created_at=obj.created_at.isoformat(),
+        )
 
 
 class ReportList(BaseModel):
     items: list[ReportRead]
     total: int
+
+
+class LocationFilter(BaseModel):
+    lat: float = Field(..., ge=-90, le=90)
+    lng: float = Field(..., ge=-180, le=180)
+    radius_km: float = Field(1, gt=0, le=50, description="Search radius in km (default 1 km, max 50 km)")
