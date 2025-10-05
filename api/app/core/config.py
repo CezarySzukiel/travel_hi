@@ -1,8 +1,10 @@
+import os
+
 from pydantic import Field
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
-load_dotenv(".env/.env")
+load_dotenv(".envs/.env")
 
 
 class Settings(BaseSettings):
@@ -12,6 +14,7 @@ class Settings(BaseSettings):
     DB_POOL_RECYCLE: int = 1800
     DB_PRE_PING: bool = True
     DB_ECHO: bool = False
+    OPENAI_API_KEY: str = Field(..., alias="OPENAI_API_KEY")
 
     DB_STATEMENT_TIMEOUT_S: int = 30
 
@@ -20,6 +23,10 @@ class Settings(BaseSettings):
 
     MAX_IMAGE_BYTES: int = 5 * 1024 * 1024  # 5 MB
     IMAGES_UPLOAD_DIR: str = Field("uploaded_images", alias="IMAGES_UPLOAD_DIR")
+
+    SECRET_KEY: str = Field("secret", alias="SECRET_KEY")
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 
     @property
     def DATABASE_URL(self) -> str:

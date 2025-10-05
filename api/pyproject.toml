@@ -13,6 +13,8 @@ dependencies = [
     "fastapi[standard]==0.115.14",
     "greenlet==3.2.3",
     "mypy>=1.16.1",
+    "nh3>=0.3.0",
+    "passlib[bcrypt]>=1.7.4",
     "psycopg[binary]==3.2.9",
     "pydantic-settings==2.10.1",
     "python-dotenv==1.1.1",

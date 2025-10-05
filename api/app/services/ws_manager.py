@@ -7,48 +7,26 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class WSConnectionManager:
+class ConnectionManager:
+    def __init__(self) -> None:
+        self.active: Set[WebSocket] = set()
 
-    def __init__(self):
+    async def connect(self, ws: WebSocket):
+        await ws.accept()
+        self.active.add(ws)
 
-        self.active_connections: list[WebSocket] = []
+    async def disconnect(self, ws: WebSocket):
+        self.active.discard(ws)
 
-        self.lock = asyncio.Lock()
-
-    async def connect(self, websocket: WebSocket):
-
-        await websocket.accept()
-
-        async with self.lock:
-            self.active_connections.append(websocket)
-
-        logger.info(f"New connection: {len(self.active_connections)} active")
-
-    async def disconnect(self, websocket: WebSocket):
-
-        async with self.lock:
-            if websocket in self.active_connections:
-                self.active_connections.remove(websocket)
-
-        logger.info(f"Disconnected: {len(self.active_connections)} active")
-
-    async def broadcast(self, message: dict):
-
-        async with self.lock:
-
-            connections = list(self.active_connections)
-
-        for ws in connections:
-
+    async def broadcast(self, data):
+        dead = []
+        for ws in self.active:
             try:
-
-                await ws.send_json(message)
-
-            except Exception as e:
-
-                logger.warning(f"Error sending to client: {e}")
-
-                await self.disconnect(ws)
+                await ws.send_json(data)
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self.active.discard(ws)
 
 
-manager = WSConnectionManager()
+manager = ConnectionManager()
