@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     MAX_IMAGE_BYTES: int = 5 * 1024 * 1024  # 5 MB
     IMAGES_UPLOAD_DIR: str = Field("uploaded_images", alias="IMAGES_UPLOAD_DIR")
 
+    SECRET_KEY: str = Field("secret", alias="SECRET_KEY")
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
+
     @property
     def DATABASE_URL(self) -> str:
         return "sqlite+aiosqlite:///./app.db"
