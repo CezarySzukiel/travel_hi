@@ -25,13 +25,13 @@ import { MapLocationPicker } from "../map/MapLocationPicker";
 import { ENV } from "../../config/env";
 
 const MAX_IMAGE_MB = 5;
-
-// 📍 Domyślny punkt – Kraków
 const DEFAULT_POINT = { lat: 50.067549, lng: 19.991471 };
 
-// ✅ Schemat walidacji (spójny z typami poniżej)
+// ✅ Schemat walidacji
 const schema = z.object({
-    type: z.enum(["accident", "roadwork", "closure", "delay", "other"]),
+    username: z.string().min(3, "Podaj nazwę użytkownika"),
+    description: z.string().min(5, "Dodaj krótki opis zdarzenia"),
+    type: z.enum(["accident", "roadwork", "roadblock", "delay", "other"]),
     lat: z.coerce.number().refine(Number.isFinite, "Wymagana lokalizacja"),
     lng: z.coerce.number().refine(Number.isFinite, "Wymagana lokalizacja"),
     photo: z
@@ -58,12 +58,11 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 export const ReportIncidentForm: React.FC = () => {
-    const [toast, setToast] = useState<{
-        open: boolean;
-        msg: string;
-        severity: "success" | "error";
-    }>({ open: false, msg: "", severity: "success" });
-
+    const [toast, setToast] = useState({
+        open: false,
+        msg: "",
+        severity: "success" as "success" | "error",
+    });
     const [preview, setPreview] = useState<string | null>(null);
 
     const {
@@ -75,6 +74,8 @@ export const ReportIncidentForm: React.FC = () => {
     } = useForm<FormValues>({
         resolver: zodResolver(schema) as Resolver<FormValues>,
         defaultValues: {
+            username: "",
+            description: "",
             type: "other",
             lat: DEFAULT_POINT.lat,
             lng: DEFAULT_POINT.lng,
@@ -98,16 +99,14 @@ export const ReportIncidentForm: React.FC = () => {
         };
     }, [preview]);
 
-    // ✅ Typy incydentów
     const incidentTypes = [
         { value: "accident" as const, label: "Wypadek", icon: <TrainIcon />, color: "#d32f2f" },
         { value: "roadwork" as const, label: "Wzmożony ruch", icon: <TrafficIcon />, color: "#f57c00" },
-        { value: "closure"  as const, label: "Zamknięcie drogi", icon: <BlockIcon />, color: "#616161" },
-        { value: "delay"    as const, label: "Opóźnienie", icon: <EngineeringIcon />, color: "#1976d2" },
-        { value: "other"    as const, label: "Inne", icon: <ReportProblemIcon />, color: "#757575" },
+        { value: "roadblock" as const, label: "Zamknięcie drogi", icon: <BlockIcon />, color: "#616161" },
+        { value: "delay" as const, label: "Opóźnienie", icon: <EngineeringIcon />, color: "#1976d2" },
+        { value: "other" as const, label: "Inne", icon: <ReportProblemIcon />, color: "#757575" },
     ];
 
-    // 🧭 „Użyj mojej lokalizacji”
     const handleUseMyLocation = () => {
         if (!navigator.geolocation) {
             setToast({
@@ -141,13 +140,11 @@ export const ReportIncidentForm: React.FC = () => {
         );
     };
 
-    // 🗺️ Zmiana z mapy
     const onPickLocation = (p: { lat: number; lng: number }) => {
         setValue("lat", p.lat, { shouldValidate: true });
         setValue("lng", p.lng, { shouldValidate: true });
     };
 
-    // 📸 Obsługa zdjęcia
     const photoInputProps = useMemo(
         () => ({
             accept: "image/*",
@@ -171,10 +168,11 @@ export const ReportIncidentForm: React.FC = () => {
         [setValue]
     );
 
-    // 🚀 Submit formularza
     const onSubmit = async (values: FormValues) => {
         try {
             const fd = new FormData();
+            fd.append("username", values.username);
+            fd.append("description", values.description);
             fd.append("type", values.type);
             fd.append("lat", String(values.lat));
             fd.append("lng", String(values.lng));
@@ -188,7 +186,13 @@ export const ReportIncidentForm: React.FC = () => {
             if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
 
             setToast({ open: true, msg: "Zgłoszono ✅", severity: "success" });
-            reset({ type: "other", ...DEFAULT_POINT, photo: null });
+            reset({
+                username: "",
+                description: "",
+                type: "other",
+                ...DEFAULT_POINT,
+                photo: null,
+            });
             setPreview(null);
         } catch (e: any) {
             setToast({
@@ -208,6 +212,60 @@ export const ReportIncidentForm: React.FC = () => {
 
                 <Box component="form" onSubmit={handleSubmit(onSubmit)}>
                     <Stack spacing={3}>
+                        {/* 👤 Nazwa użytkownika */}
+                        <Box>
+                            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                                Twoja nazwa użytkownika:
+                            </Typography>
+                            <input
+                                type="text"
+                                value={watch("username")}
+                                onChange={(e) =>
+                                    setValue("username", e.target.value, { shouldValidate: true })
+                                }
+                                placeholder="np. rafal123"
+                                style={{
+                                    width: "100%",
+                                    padding: "10px",
+                                    borderRadius: "6px",
+                                    border: "1px solid #ccc",
+                                    fontSize: "1rem",
+                                }}
+                            />
+                            {errors.username && (
+                                <Typography variant="caption" color="error">
+                                    {String(errors.username.message)}
+                                </Typography>
+                            )}
+                        </Box>
+
+                        {/* 📝 Opis zdarzenia */}
+                        <Box>
+                            <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                                Krótki opis zdarzenia:
+                            </Typography>
+                            <textarea
+                                value={watch("description")}
+                                onChange={(e) =>
+                                    setValue("description", e.target.value, { shouldValidate: true })
+                                }
+                                placeholder="Opisz krótko co się stało..."
+                                rows={3}
+                                style={{
+                                    width: "100%",
+                                    padding: "10px",
+                                    borderRadius: "6px",
+                                    border: "1px solid #ccc",
+                                    fontSize: "1rem",
+                                }}
+                            />
+                            {errors.description && (
+                                <Typography variant="caption" color="error">
+                                    {String(errors.description.message)}
+                                </Typography>
+                            )}
+                        </Box>
+
                         {/* 🔹 Typ zdarzenia */}
                         <Box>
                             <Typography variant="subtitle1" sx={{ mb: 1 }}>
@@ -263,12 +321,7 @@ export const ReportIncidentForm: React.FC = () => {
                                 ))}
                             </Stack>
                             {errors.type && (
-                                <Typography
-                                    variant="caption"
-                                    color="error"
-                                    textAlign="center"
-                                    display="block"
-                                >
+                                <Typography variant="caption" color="error" textAlign="center">
                                     {String(errors.type.message)}
                                 </Typography>
                             )}
@@ -282,9 +335,7 @@ export const ReportIncidentForm: React.FC = () => {
                                 alignItems="center"
                                 sx={{ mb: 1 }}
                             >
-                                <Typography variant="subtitle1">
-                                    Wybierz lokalizację:
-                                </Typography>
+                                <Typography variant="subtitle1">Wybierz lokalizację:</Typography>
                                 <Button
                                     variant="outlined"
                                     size="small"
@@ -318,11 +369,7 @@ export const ReportIncidentForm: React.FC = () => {
                                 <input type="file" hidden {...photoInputProps} />
                             </Button>
                             {preview && (
-                                <Avatar
-                                    variant="rounded"
-                                    src={preview}
-                                    sx={{ width: 64, height: 64 }}
-                                />
+                                <Avatar variant="rounded" src={preview} sx={{ width: 64, height: 64 }} />
                             )}
                         </Stack>
                         {errors.photo && (
