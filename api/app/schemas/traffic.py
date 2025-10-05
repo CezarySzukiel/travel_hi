@@ -14,7 +14,6 @@ class TrafficReport(BaseModel):
 class DisruptionPrediction(BaseModel):
     probability: Annotated[float, Field(ge=0.0, le=1.0)]
     category: Literal["delay", "breakdown", "accident", "congestion", "strike", "unknown"]
-    # ⬇️ usuwamy max_length – pozwalamy na dłuższy tekst
     reasoning: str
     recommended_action: str
     confidence: Annotated[float, Field(ge=0.0, le=1.0)]

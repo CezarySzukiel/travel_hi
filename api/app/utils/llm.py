@@ -1,40 +1,55 @@
 # app/utils/llm.py
-from typing import Literal
+from typing import Literal, Optional
+from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel, Field
-from app.schemas.traffic import TrafficReport, DisruptionPrediction
 
-# Structured output – bez max_length i bez przycinania po stronie serwera
+from app.schemas.traffic import TrafficReport, DisruptionPrediction
+from app.utils.moderation import ensure_allowed_or_none  # moderacja przed LLM
+
+# ===== Structured output schema =====
 class _AssessmentModel(BaseModel):
     probability: float = Field(..., ge=0.0, le=1.0)
     category: Literal["delay", "breakdown", "accident", "congestion", "strike", "unknown"]
-    # krótko, ale treściwie — wymuszone tylko instrukcją w promptcie
     reasoning: str = Field(..., description="1–2 zwięzłe zdania, konkret.")
     recommended_action: str = Field(..., description="Jedno zwięzłe zdanie z zaleceniem.")
     confidence: float = Field(..., ge=0.0, le=1.0)
 
+# ===== Prompty =====
 _BASE_PROMPT = ChatPromptTemplate.from_messages([
     ("system",
      "Jesteś analitykiem transportu publicznego. "
      "Zwracaj wynik ZWIĘZŁY, ale KONKRETNY. "
-     "Formę trzymaj tak: 'reasoning' = 1–2 zdania (ok. 15–40 słów), "
-     "'recommended_action' = 1 zdanie (ok. 10–25 słów). "
-     "Bez dygresji, po polsku. "
+     "Formę trzymaj tak: 'reasoning' = 1–2 zdania (~15–40 słów), "
+     "'recommended_action' = 1 zdanie (~10–25 słów). "
+     "Po polsku. "
      "category wybierz wyłącznie z: delay, breakdown, accident, congestion, strike, unknown."),
     ("human",
-     "Miasto: {city}\n"
-     "Środek: {mode}\n"
-     "Linia: {line}\n"
-     "Lokalizacja: {lat}, {lon}\n"
-     "Czas: {timestamp}\n"
-     "Opis użytkownika: {user_text}\n"
+     "Miasto: {city}\nŚrodek: {mode}\nLinia: {line}\nLokalizacja: {lat}, {lon}\n"
+     "Czas: {timestamp}\nOpis użytkownika: {user_text}\n"
      "Zwróć wynik zgodny ze schematem.")
 ])
 
-# Model i krótkie odpowiedzi (bez brutalnego limitu długości)
-_llm = ChatOpenAI(model="gpt-5-mini", temperature=0.2, max_tokens=260)
+# „Krótsza” wersja do retry (gdy zabraknie tokenów)
+_SHORT_PROMPT = ChatPromptTemplate.from_messages([
+    ("system",
+     "Zwróć TYLKO structured output zgodny ze schematem. "
+     "reasoning: ≤ 14 słów. recommended_action: ≤ 14 słów. Po polsku. "
+     "category z {delay, breakdown, accident, congestion, strike, unknown}. Bez dygresji."),
+    ("human",
+     "Miasto: {city}\nŚrodek: {mode}\nLinia: {line}\nLokalizacja: {lat}, {lon}\n"
+     "Czas: {timestamp}\nOpis użytkownika: {user_text}\n"
+     "Zwróć wynik.")
+])
+
+# ===== Model LLM (więcej tokenów wyjścia) =====
+_llm = ChatOpenAI(
+    model="gpt-5-mini",
+    temperature=0.2,
+    max_tokens=512,  # ← było 260; podnosimy, żeby dokończył JSON
+)
 _structured = _llm.with_structured_output(_AssessmentModel)
+_structured_short = _llm.with_structured_output(_AssessmentModel)  # używamy tego samego modelu
 
 def _missing_fields(res: _AssessmentModel) -> list[str]:
     missing = []
@@ -44,7 +59,18 @@ def _missing_fields(res: _AssessmentModel) -> list[str]:
             missing.append(f)
     return missing
 
-def assess_disruption(report: TrafficReport) -> DisruptionPrediction:
+def assess_disruption(report: TrafficReport) -> Optional[DisruptionPrediction]:
+    """
+    1) Moderacja user_text – jeśli NIEDOZWOLONE → None (body=null).
+    2) LLM structured output (1. próba).
+    3) Jeśli padnie na limit tokenów / parsing: retry z krótszym promptem.
+    4) Jeśli dalej źle albo brakuje pól → bezpieczny fallback (nie 503).
+    """
+    # — Moderacja —
+    allowed_text = ensure_allowed_or_none(report.user_text)
+    if allowed_text is None:
+        return None
+
     variables = {
         "city": report.city,
         "mode": report.mode,
@@ -52,24 +78,25 @@ def assess_disruption(report: TrafficReport) -> DisruptionPrediction:
         "lat": report.latitude,
         "lon": report.longitude,
         "timestamp": report.timestamp.isoformat(),
-        "user_text": report.user_text or "brak",
+        "user_text": allowed_text or "brak",
     }
 
-    # 1. podejście
-    result = (_BASE_PROMPT | _structured).invoke(variables)
+    result: Optional[_AssessmentModel] = None
 
-    # Jeśli czegoś brakuje – spróbuj raz jeszcze z doprecyzowaniem
+    # 1) podejście – pełny prompt
+    try:
+        result = (_BASE_PROMPT | _structured).invoke(variables)
+    except Exception:
+        result = None  # przechodzimy do retry
+
+    # 2) retry – krótszy prompt (mniej treści)
     if result is None or _missing_fields(result):
-        repair_prompt = ChatPromptTemplate.from_messages([
-            *_BASE_PROMPT.messages,
-            ("system",
-             "Poprzednia odpowiedź była niekompletna. "
-             "Uzupełnij WSZYSTKIE pola ('probability', 'category', 'reasoning', 'recommended_action', 'confidence'). "
-             "Zachowaj długość: reasoning 1–2 zdania, recommended_action 1 zdanie.")
-        ])
-        result = (repair_prompt | _structured).invoke(variables)
+        try:
+            result = (_SHORT_PROMPT | _structured_short).invoke(variables)
+        except Exception:
+            result = None
 
-    # Jeżeli nadal nie ma – zwróć sensowny, ale nieprzycinany fallback
+    # 3) fallback – bez 503 (stabilna odpowiedź)
     if result is None or _missing_fields(result):
         return DisruptionPrediction(
             probability=0.6,
