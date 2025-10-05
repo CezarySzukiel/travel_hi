@@ -83,6 +83,14 @@ export const router = createBrowserRouter([
                 },
             },
             {
+                path: "register",
+                lazy: async () => {
+                    const mod = await import("./pages/Register");
+                    return { Component: mod.default };
+                },
+            },
+
+            {
                 path: "planner",
                 index: true,
                 lazy: async () => {
