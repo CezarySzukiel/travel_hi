@@ -42,7 +42,7 @@ async def _get_user_by_username(username: str, db: Session) -> User | None:
     """Lazily import and call the user module function"""
     global _user_module
     if _user_module is None:
-        import crud.user as user_module
+        import app.repositories.user as user_module
         _user_module = user_module
 
     return _user_module.get_user_by_username(username, db)
