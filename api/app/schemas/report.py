@@ -8,13 +8,7 @@ class ReportType(str, Enum):
     TRAFFIC_JAM = "traffic_jam"
     ROADBLOCK = "roadblock"
     ROADWORK = "roadwork"
-    SLIPPERY_ROAD = "slippery_road"
-    OBJECT_ON_ROAD = "object_on_road"
-    # Transport publiczny
     DELAY = "delay"
-
-    # Bezpieczeństwo i awarie
-    POLICE = "police"
     OTHER = "other"
 
 
