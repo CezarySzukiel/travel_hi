@@ -11,7 +11,7 @@ export interface Incident {
 
 export type IncidentType = "accident" | "roadwork" | "closure" | "other";
 
-/** Dane wysyłane z formularza "Zgłoś utrudnienie" */
+
 export interface NewIncidentPayload {
     type: IncidentType;
     description: string;
