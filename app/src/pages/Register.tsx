@@ -53,25 +53,27 @@ export default function Register() {
 
     const onSubmit = async (values: FormValues) => {
         try {
-            const res = await fetch(`${ENV.API_BASE_URL}/auth/register`, {
+            const res = await fetch(`${ENV.API_BASE_URL}/users/user`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     email: values.email,
                     password: values.password,
-                    full_name: values.fullName,
+                    username: values.fullName,
                 }),
             });
-
+            console.log(await res.json());
             if (!res.ok) throw new Error("Nie udało się zarejestrować użytkownika.");
             setToast({
                 open: true,
                 msg: "Rejestracja zakończona pomyślnie 🎉",
                 severity: "success",
             });
+
             reset();
         } catch (err: any) {
             setToast({ open: true, msg: err.message, severity: "error" });
+            console.error(err);
         }
     };
 
@@ -95,7 +97,7 @@ export default function Register() {
                     <Box component="form" onSubmit={handleSubmit(onSubmit)}>
                         <Stack spacing={2.5}>
                             <TextField
-                                label="Imię i nazwisko"
+                                label="Nazwa użytkownika"
                                 {...register("fullName")}
                                 error={!!errors.fullName}
                                 helperText={errors.fullName?.message}

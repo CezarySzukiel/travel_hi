@@ -1,7 +1,6 @@
-// src/common/ThemeControls.tsx
 import { useContext } from "react";
 import { AppThemeContext, type ThemeMode } from "../ThemeContext";
-import { IconButton, Tooltip, Box, Button, Stack } from "@mui/material";
+import { IconButton, Tooltip, Box, Button, Stack, Divider } from "@mui/material";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import InvertColorsIcon from "@mui/icons-material/InvertColors";
@@ -27,52 +26,57 @@ export default function ThemeControls() {
 
     return (
         <Stack direction="row" alignItems="center" spacing={1}>
-            {/* 🔆 Tryby motywu */}
-            <Tooltip title="Tryb jasny">
-                <IconButton
-                    color={isSelected("light") ? "primary" : "default"}
-                    onClick={() => toggleMode("light")}
-                    sx={iconColorSx}
-                >
-                    <LightModeIcon />
-                </IconButton>
-            </Tooltip>
+            {/* 🌗 Ikony motywów */}
+            <Stack direction="row" spacing={1}>
+                <Tooltip title="Tryb jasny">
+                    <IconButton
+                        color={isSelected("light") ? "primary" : "default"}
+                        onClick={() => toggleMode("light")}
+                        sx={iconColorSx}
+                    >
+                        <LightModeIcon />
+                    </IconButton>
+                </Tooltip>
 
-            <Tooltip title="Tryb ciemny">
-                <IconButton
-                    color={isSelected("dark") ? "primary" : "default"}
-                    onClick={() => toggleMode("dark")}
-                    sx={iconColorSx}
-                >
-                    <DarkModeIcon />
-                </IconButton>
-            </Tooltip>
+                <Tooltip title="Tryb ciemny">
+                    <IconButton
+                        color={isSelected("dark") ? "primary" : "default"}
+                        onClick={() => toggleMode("dark")}
+                        sx={iconColorSx}
+                    >
+                        <DarkModeIcon />
+                    </IconButton>
+                </Tooltip>
 
-            <Tooltip title="Wysoki kontrast">
-                <IconButton
-                    color={isSelected("contrast") ? "primary" : "default"}
-                    onClick={() => toggleMode("contrast")}
-                    sx={iconColorSx}
-                >
-                    <InvertColorsIcon />
-                </IconButton>
-            </Tooltip>
+                <Tooltip title="Wysoki kontrast">
+                    <IconButton
+                        color={isSelected("contrast") ? "primary" : "default"}
+                        onClick={() => toggleMode("contrast")}
+                        sx={iconColorSx}
+                    >
+                        <InvertColorsIcon />
+                    </IconButton>
+                </Tooltip>
 
-            <Tooltip title={fontSizeLabel}>
-                <IconButton onClick={cycleFontSize} sx={iconColorSx}>
-                    <TextIncreaseIcon />
-                </IconButton>
-            </Tooltip>
+                <Tooltip title={fontSizeLabel}>
+                    <IconButton onClick={cycleFontSize} sx={iconColorSx}>
+                        <TextIncreaseIcon />
+                    </IconButton>
+                </Tooltip>
+            </Stack>
 
-            {/* 🔒 Logowanie / Rejestracja / Wylogowanie */}
-            <Box sx={{ ml: 2 }}>
+            {/* 🔹 Pionowy separator między ikonami a przyciskami */}
+            <Divider orientation="vertical" flexItem sx={{ mx: 2, borderColor: "rgba(255,255,255,0.3)" }} />
+
+            {/* 🔒 Przyciski logowania */}
+            <Box display="flex" alignItems="center" gap={1}>
                 {!isLoggedIn ? (
                     <>
                         <Button
                             color="inherit"
                             size="small"
                             onClick={() => navigate("/login")}
-                            sx={{ textTransform: "none", mr: 1 }}
+                            sx={{ textTransform: "none", mr: 0.5 }}
                         >
                             Zaloguj
                         </Button>
