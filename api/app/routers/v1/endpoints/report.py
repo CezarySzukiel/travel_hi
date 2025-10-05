@@ -43,8 +43,8 @@ async def create_report(
         description: str | None = Form(None, description="Optional description"),
         photo: UploadFile | None = File(default=None),
         svc: ReportService = Depends(get_service),
-        token: str = Depends(oauth2_scheme),
-        db=Depends(get_session),
+        # token: str = Depends(oauth2_scheme),
+        # db=Depends(get_session),
 ):
     try:
         Location(lat=lat, lng=lng)
@@ -54,13 +54,13 @@ async def create_report(
             detail="Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180.",
         )
 
-    user = None
-    if token:
-        try:
-            user = await get_current_user(token=token, db=db)
-            print("✅ Authenticated user:", user.username)
-        except HTTPException:
-            user = None
+    # user = None
+    # if token:
+    #     try:
+    #         user = await get_current_user(token=token, db=db)
+    #         print("✅ Authenticated user:", user.username)
+    #     except HTTPException:
+    #         user = None
 
     if description:
         moderate_description = moderate_text(description)
