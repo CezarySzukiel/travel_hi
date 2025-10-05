@@ -2,7 +2,6 @@ export type Incident = {
     id: string;
     title: string;
     description?: string | null;
-    severity: "low" | "medium" | "high";
     lat: number;
     lng: number;
     created_at?: string;

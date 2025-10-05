@@ -67,7 +67,22 @@ export const router = createBrowserRouter([
                     return { Component: mod.default };
                 },
             },
-             {
+            {
+                path: "profile",
+                //loader: protectedLoader, // 🔒 dostęp tylko po zalogowaniu
+                lazy: async () => {
+                    const mod = await import("./pages/UserProfile");
+                    return { Component: mod.default };
+                },
+            },
+            {
+                path: "login",
+                lazy: async () => {
+                    const mod = await import("./pages/LoginPage");
+                    return { Component: mod.default };
+                },
+            },
+            {
                 path: "planner",
                 index: true,
                 lazy: async () => {
