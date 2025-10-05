@@ -1,10 +1,18 @@
 import { useContext } from "react";
 import { AppThemeContext, type ThemeMode } from "../ThemeContext";
-import { IconButton, Tooltip, Box, Button, Stack, Divider } from "@mui/material";
+import {
+    IconButton,
+    Tooltip,
+    Box,
+    Button,
+    Stack,
+    Divider,
+} from "@mui/material";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import InvertColorsIcon from "@mui/icons-material/InvertColors";
 import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { useNavigate } from "react-router-dom";
 
 export default function ThemeControls() {
@@ -65,10 +73,10 @@ export default function ThemeControls() {
                 </Tooltip>
             </Stack>
 
-            {/* 🔹 Pionowy separator między ikonami a przyciskami */}
+            {/* 🔹 Separator */}
             <Divider orientation="vertical" flexItem sx={{ mx: 2, borderColor: "rgba(255,255,255,0.3)" }} />
 
-            {/* 🔒 Przyciski logowania */}
+            {/* 👤 Sekcja użytkownika */}
             <Box display="flex" alignItems="center" gap={1}>
                 {!isLoggedIn ? (
                     <>
@@ -94,18 +102,29 @@ export default function ThemeControls() {
                         </Button>
                     </>
                 ) : (
-                    <Button
-                        color="inherit"
-                        size="small"
-                        onClick={() => {
-                            localStorage.removeItem("token");
-                            navigate("/");
-                            window.location.reload();
-                        }}
-                        sx={{ textTransform: "none" }}
-                    >
-                        Wyloguj
-                    </Button>
+                    <>
+                        <Tooltip title="Mój profil">
+                            <IconButton
+                                color="inherit"
+                                onClick={() => navigate("/profile")} // 👈 TU prowadzi do /profile
+                            >
+                                <AccountCircleIcon />
+                            </IconButton>
+                        </Tooltip>
+
+                        <Button
+                            color="inherit"
+                            size="small"
+                            onClick={() => {
+                                localStorage.removeItem("token");
+                                navigate("/");
+                                window.location.reload();
+                            }}
+                            sx={{ textTransform: "none" }}
+                        >
+                            Wyloguj
+                        </Button>
+                    </>
                 )}
             </Box>
         </Stack>

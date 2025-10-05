@@ -192,13 +192,23 @@ export const ReportIncidentForm: React.FC = () => {
             fd.append("lng", String(values.lng));
             const file = values.photo ?? null;
             if (file) fd.append("photo", file);
+
+            // 🧠 Pobierz token JWT z localStorage
+            const token = localStorage.getItem("token");
+
+            // 🔐 Wyślij zgłoszenie z autoryzacją
             const res = await fetch(`${ENV.API_BASE_URL}/incidents`, {
                 method: "POST",
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}), // tylko jeśli jest token
+                },
                 body: fd,
             });
+
             if (!res.ok) throw new Error((await res.text()) || `HTTP ${res.status}`);
 
             setToast({ open: true, msg: "Zgłoszono ✅", severity: "success" });
+
             reset({
                 username: "",
                 description: "",
@@ -206,6 +216,7 @@ export const ReportIncidentForm: React.FC = () => {
                 ...DEFAULT_POINT,
                 photo: null,
             });
+
             setPreview(null);
         } catch (e: any) {
             setToast({
@@ -215,6 +226,7 @@ export const ReportIncidentForm: React.FC = () => {
             });
         }
     };
+
 
     return (
         <Card>
