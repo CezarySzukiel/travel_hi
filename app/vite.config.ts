@@ -18,7 +18,7 @@ export default defineConfig(() => {
       // https: httpsOptions,            // ← prawdziwy cert + klucz
       strictPort: true,
       hmr: {
-        // protocol: "wss",              // ← ważne przy HTTPS
+        protocol: "wss",              // ← ważne przy HTTPS
         host: "localhost",
         port: 5173,
       },
