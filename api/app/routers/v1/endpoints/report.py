@@ -16,6 +16,10 @@ from app.repositories.report import ReportRepository
 from app.services.report import ReportService
 from app.schemas.report import ReportRead, ReportType, Location, ReportList
 from app.utils.images import validate_and_store_image
+from app.schemas.traffic import TrafficReport
+from app.utils.llm import assess_disruption
+from app.services.ws_manager import manager
+
 
 router = APIRouter()
 
@@ -43,6 +47,22 @@ def create_report(
             detail="Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180.",
         )
 
+    traffic_data = TrafficReport(
+        type=type.value,
+        lat=lat,
+        lng=lng,
+        description=description or "",
+        name=name or "",
+    )
+
+    try:
+        llm_result = assess_disruption(traffic_data)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"LLM error: {e}")
+
+    if not llm_result.is_valid:
+        raise HTTPException(status_code=400, detail=f"Report rejected: {llm_result.reason or 'Not accepted by AI'}")
+
     photo_name = validate_and_store_image(photo) if photo and photo.filename else None
 
     obj = svc.create(
@@ -55,7 +75,14 @@ def create_report(
     )
 
     base = str(request.base_url).rstrip("/")
-    return ReportRead.from_orm_with_photo(obj, base_url=base)
+    result = ReportRead.from_orm_with_photo(obj, base_url=base)
+
+    asyncio.create_task(manager.broadcast({
+        "type": "new_incident",
+        "data": result.model_dump(),
+    }))
+
+    return result
 
 
 @router.get("/incidents/{incident_id}", response_model=ReportRead, status_code=200)
