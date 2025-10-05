@@ -71,7 +71,7 @@ class ReportList(BaseModel):
 class LocationFilter(BaseModel):
     lat: float = Field(..., ge=-90, le=90)
     lng: float = Field(..., ge=-180, le=180)
-    radius_km: float = Field(1, gt=0, le=50, description="Search radius in km (default 1 km, max 50 km)")
+    radius_km: float = Field(1, gt=0, le=50000, description="Search radius in km (default 1 km, max 50 km)")
 
 
 class WSMessage(BaseModel):

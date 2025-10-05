@@ -114,7 +114,7 @@ def list_reports(
         request: Request,
         lat: float = Query(0, ge=-90, le=90, description="User latitude"),
         lng: float = Query(0, ge=-180, le=180, description="User longitude"),
-        radius: float = Query(500.0, gt=0, le=5000, description="Search radius in kilometers (default 5 km)"),
+        radius: float = Query(50000.0, gt=0, le=50009, description="Search radius in kilometers (default 5 km)"),
         skip: int = Query(0, ge=0, description="Number of items to skip"),
         limit: int = Query(50, le=200, description="Max number of items to return"),
         svc: ReportService = Depends(get_service),
