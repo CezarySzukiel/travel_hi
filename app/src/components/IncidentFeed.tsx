@@ -37,7 +37,7 @@ type IncidentListResponse = {
  * Buduje poprawny adres WebSocket — bez podwójnych /api/v1
  */
 const wsUrl = (path: string = "/api/v1/ws") => {
-  const proto = window.location.protocol === "https:" ? "ws" : "ws";
+  const proto = window.location.protocol === "https:" ? "wss" : "wss";
   const cleanBase = ENV.API_BASE_URL.replace(/^https?:\/\//, "").replace(/\/+$/, "");
   // Usuwa duplikaty /api/v1 jeśli występują
   const full = `${proto}://${cleanBase}${path.startsWith("/") ? path : `/${path}`}`.replace(/(\/api\/v1){2,}/, "/api/v1");
