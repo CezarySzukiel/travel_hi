@@ -1,4 +1,3 @@
-// src/components/TransitRoutePlanner.tsx
 import * as React from "react";
 import {
   Box,
@@ -29,7 +28,7 @@ import {
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
 
 const mapContainerStyle = { width: "100%", height: "55vh", borderRadius: 12 };
-const DEFAULT_CENTER = { lat: 50.067549, lng: 19.991471 }; // Kraków (Twoje domyślne!)
+const DEFAULT_CENTER = { lat: 50.067549, lng: 19.991471 };
 
 type Mode = "departure" | "arrival";
 
@@ -62,57 +61,55 @@ export default function TransitRoutePlanner() {
   };
 
   const handlePlan = async () => {
-    setError(null);
-    setDirections(null);
+  setError(null);
+  setDirections(null);
 
-    if (!origin || !destination) {
-      setError("Podaj punkt początkowy i docelowy.");
-      return;
+  if (!origin || !destination) {
+    setError("Podaj punkt początkowy i docelowy.");
+    return;
+  }
+  if (!(window.google && window.google.maps)) {
+    setError("Google Maps SDK nie jest jeszcze gotowy.");
+    return;
+  }
+
+  setLoading(true);
+  try {
+    const svc = new google.maps.DirectionsService();
+
+    const req: google.maps.DirectionsRequest = {
+      origin,
+      destination,
+      travelMode: google.maps.TravelMode.TRANSIT,
+      transitOptions: {
+        modes: [
+          google.maps.TransitMode.BUS,
+          google.maps.TransitMode.RAIL,
+          google.maps.TransitMode.SUBWAY,
+          google.maps.TransitMode.TRAM,
+          google.maps.TransitMode.TRAIN,
+        ],
+        routingPreference: google.maps.TransitRoutePreference.FEWER_TRANSFERS,
+        ...(mode === "departure" ? { departureTime: date } : { arrivalTime: date }),
+      },
+      provideRouteAlternatives: true,
+      // region: "PL",
+    };
+
+    const res = await svc.route(req);
+
+    if (!res.routes || res.routes.length === 0) {
+      throw new Error("Brak trasy dla podanych parametrów.");
     }
-    if (!(window.google && window.google.maps)) {
-      setError("Google Maps SDK nie jest jeszcze gotowy.");
-      return;
-    }
 
-    setLoading(true);
-    try {
-      const svc = new google.maps.DirectionsService();
+    setDirections(res);
+  } catch (e: any) {
+    setError(e?.message ?? "Nie udało się pobrać trasy.");
+  } finally {
+    setLoading(false);
+  }
+};
 
-      const req: google.maps.DirectionsRequest = {
-        origin,
-        destination,
-        travelMode: google.maps.TravelMode.TRANSIT,
-        // preferencje komunikacji publicznej
-        transitOptions: {
-          modes: [
-            google.maps.TransitMode.BUS,
-            google.maps.TransitMode.RAIL,
-            google.maps.TransitMode.SUBWAY,
-            google.maps.TransitMode.TRAM,
-            google.maps.TransitMode.TRAIN,
-          ],
-          routingPreference: google.maps.TransitRoutePreference.FEWER_TRANSFERS, // lub LESS_WALKING
-          ...(mode === "departure"
-            ? { departureTime: date }
-            : { arrivalTime: date }),
-        },
-        // opcjonalnie: region: "PL",
-        provideRouteAlternatives: true,
-      };
-
-      const res = await svc.route(req);
-      if (res.status !== "OK" || !res.routes?.length) {
-        throw new Error(`Brak trasy (status: ${res.status}).`);
-      }
-      setDirections(res);
-    } catch (e: any) {
-      setError(e?.message ?? "Nie udało się pobrać trasy.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // krótkie podsumowanie pierwszej trasy
   const primaryLeg = directions?.routes?.[0]?.legs?.[0];
   const summary = primaryLeg
     ? {
@@ -216,7 +213,7 @@ export default function TransitRoutePlanner() {
                     suppressMarkers: false,
                     preserveViewport: false,
                     polylineOptions: {
-                      strokeColor: "#34d399", // akcent z Twojego brandu
+                      strokeColor: "#34d399",
                       strokeOpacity: 0.9,
                       strokeWeight: 5,
                     },
