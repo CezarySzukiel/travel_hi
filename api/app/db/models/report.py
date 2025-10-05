@@ -2,15 +2,7 @@ import enum
 from sqlalchemy import Enum, String, Integer, Float, Text, DateTime, text
 from sqlalchemy.orm import Mapped, mapped_column
 from app.db.database import Base
-
-
-class ReportType(str, enum.Enum):
-    ACCIDENT = "accident"
-    ROADWORK = "roadwork"
-    CLOSURE = "closure"
-    POLICE = "police"
-    OTHER = "other"
-
+from app.schemas.report import ReportType
 
 class Report(Base):
     __tablename__ = "reports"
