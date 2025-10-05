@@ -190,6 +190,7 @@ export const ReportIncidentForm: React.FC = () => {
             fd.append("type", values.type);
             fd.append("lat", String(values.lat));
             fd.append("lng", String(values.lng));
+            console.log("Submitting", values);
             const file = values.photo ?? null;
             if (file) fd.append("photo", file);
             const res = await fetch(`${ENV.API_BASE_URL}/incidents`, {

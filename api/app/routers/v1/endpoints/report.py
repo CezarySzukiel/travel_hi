@@ -21,6 +21,10 @@ from app.schemas.traffic import TrafficReport
 from app.utils.llm import assess_disruption
 from app.services.ws_manager import manager
 from app.utils.moderation import moderate_text
+from app.core.security import oauth2_scheme
+from app.repositories.auth import authenticate_user
+from app.schemas.user import User
+from app.core.rbac import get_current_active_user
 
 router = APIRouter()
 
@@ -47,7 +51,6 @@ async def create_report(
             status_code=422,
             detail="Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180.",
         )
-
 
     if description:
         moderate_description = moderate_text(description)
