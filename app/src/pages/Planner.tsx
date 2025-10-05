@@ -35,6 +35,55 @@ import {useJsApiLoader, GoogleMap, Autocomplete, DirectionsRenderer} from "@reac
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string;
 const DEFAULT_CENTER = {lat: 50.067549, lng: 19.991471};
 
+type AdvisoryLevel = "ok" | "info" | "warn" | "alert";
+
+type Advisory = {
+    level: AdvisoryLevel;
+    label: string;      // krótki badge
+    message: string;    // opis
+};
+
+const ADVISORIES_POOL: Advisory[] = [
+    {level: "ok", label: "Brak utrudnień", message: "Nie zgłoszono żadnych utrudnień na trasie."},
+    {level: "info", label: "Wydarzenie", message: "W mieście planowany koncert — możliwe większe obłożenie linii."},
+    {level: "info", label: "Pogoda", message: "Prognozowane opady — możliwe drobne opóźnienia."},
+    {level: "warn", label: "Remont torów", message: "Prace torowe na odcinku trasy — spodziewane przesiadki."},
+    {level: "warn", label: "Duże obłożenie", message: "Godziny szczytu — przewidywany większy tłok w pojazdach."},
+    {
+        level: "alert",
+        label: "Opóźnienia",
+        message: "Zgłoszono utrudnienia na węźle przesiadkowym — opóźnienia do 20 min."
+    },
+];
+
+function pickRandomAdvisory(): Advisory {
+    const i = Math.floor(Math.random() * ADVISORIES_POOL.length);
+    return ADVISORIES_POOL[i];
+}
+
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import InfoIcon from "@mui/icons-material/Info";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import ReportIcon from "@mui/icons-material/Report";
+
+function advisoryVisuals(a: Advisory): {
+    color: "default" | "success" | "info" | "warning" | "error";
+    Icon: React.ElementType
+} {
+    switch (a.level) {
+        case "ok":
+            return {color: "success", Icon: CheckCircleIcon};
+        case "info":
+            return {color: "info", Icon: InfoIcon};
+        case "warn":
+            return {color: "warning", Icon: WarningAmberIcon};
+        case "alert":
+            return {color: "error", Icon: ReportIcon};
+        default:
+            return {color: "default", Icon: InfoIcon};
+    }
+}
+
 type Mode = "departure" | "arrival";
 
 type Segment =
@@ -64,6 +113,7 @@ export default function TransitRoutePlanner() {
     const [destination, setDestination] = React.useState<string>("");
     const [date, setDate] = React.useState<Date>(new Date());
     const [mode, setMode] = React.useState<Mode>("departure");
+    const [advisory, setAdvisory] = React.useState<Advisory | null>(null);
 
     const originAC = React.useRef<google.maps.places.Autocomplete | null>(null);
     const destAC = React.useRef<google.maps.places.Autocomplete | null>(null);
@@ -100,6 +150,7 @@ export default function TransitRoutePlanner() {
     const handlePlan = async () => {
         setError(null);
         setDirections(null);
+
         setSegments([]);
 
         if (!origin || !destination) {
@@ -136,6 +187,7 @@ export default function TransitRoutePlanner() {
             const res = await svc.route(req);
             if (!res.routes?.length) throw new Error("Brak trasy dla podanych parametrów.");
             setDirections(res);
+            setAdvisory(pickRandomAdvisory());
 
             const leg = res.routes[0]?.legs?.[0];
             const steps = leg?.steps ?? [];
@@ -269,6 +321,32 @@ export default function TransitRoutePlanner() {
                         <Chip label={`Odcinki: ${summary.steps}`}/>
                     </Stack>
                 )}
+
+                {advisory && (() => {
+                    const {color, Icon} = advisoryVisuals(advisory);
+                    return (
+                        <Stack
+                            direction="row"
+                            spacing={1.5}
+                            alignItems="center"
+                            sx={{
+                                mt: 1.5,
+                                p: 1,
+                                borderRadius: 1.5,
+                                bgcolor: (t) => t.palette.action.hover,
+                            }}
+                        >
+                            <Chip
+                                icon={<Icon/>}
+                                label={advisory.label}
+                                color={color}
+                                variant="filled"
+                                size="small"
+                            />
+                            <Typography variant="body2">{advisory.message}</Typography>
+                        </Stack>
+                    );
+                })()}
 
                 {apiKeyMissing && (
                     <Alert severity="warning" sx={{mt: 2}}>
