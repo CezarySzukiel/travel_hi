@@ -24,7 +24,6 @@ interface Incident {
     photo_url?: string;
     created_at?: string;
     description?: string;
-    severity?: "low" | "medium" | "high";
     status?: "pending" | "verified" | "resolved";
     helpfulCount?: number;
 }
@@ -50,12 +49,6 @@ const IncidentDetails: React.FC<Props> = ({ onClose }) => {
                 if (!res.ok) throw new Error(`Błąd API: ${res.status}`);
                 const data = await res.json();
 
-                // ✅ Bezpieczne przypisanie pól z fallbackami
-                const safeSeverity: "low" | "medium" | "high" =
-                    data.severity === "low" || data.severity === "medium" || data.severity === "high"
-                        ? data.severity
-                        : "medium";
-
                 const safeType = data.type || "other";
 
                 setIncident({
@@ -66,7 +59,6 @@ const IncidentDetails: React.FC<Props> = ({ onClose }) => {
                         (safeType === "accident"
                             ? "https://kolejowyportal.pl/files/su160-009.jpg.webp"
                             : "https://images.unsplash.com/photo-1509395176047-4a66953fd231"),
-                    severity: safeSeverity,
                     status: data.status || "pending",
                     description:
                         data.description ||
@@ -75,7 +67,6 @@ const IncidentDetails: React.FC<Props> = ({ onClose }) => {
                 });
             } catch (err: any) {
                 console.error(err);
-                // fallback lokalny
                 setIncident({
                     id: Number(id),
                     type: "accident",
@@ -83,7 +74,6 @@ const IncidentDetails: React.FC<Props> = ({ onClose }) => {
                     photo_url: "https://kolejowyportal.pl/files/su160-009.jpg.webp",
                     created_at: "2025-10-04",
                     description: "Awaria lokomotywy – Kraków Główny. Opóźnienie 40 minut.",
-                    severity: "medium",
                     status: "pending",
                     helpfulCount: 3,
                 });
@@ -135,16 +125,6 @@ const IncidentDetails: React.FC<Props> = ({ onClose }) => {
         );
     }
 
-    // ✅ Mapowanie poziomów trudności na kolory + etykiety
-    const severityMap: Record<"low" | "medium" | "high", { color: any; label: string }> = {
-        low: { color: "success", label: "Niski" },
-        medium: { color: "warning", label: "Średni" },
-        high: { color: "error", label: "Wysoki" },
-    };
-
-    const { color: severityColor, label: severityLabel } =
-        severityMap[incident.severity ?? "medium"];
-
     const statusLabel =
         incident.status === "pending"
             ? "Oczekuje na weryfikację"
@@ -154,7 +134,6 @@ const IncidentDetails: React.FC<Props> = ({ onClose }) => {
 
     return (
         <Box sx={{ position: "relative", maxWidth: 700, mx: "auto", mt: 2, pb: 2 }}>
-            {/* ❌ Ikonka zamykania */}
             {onClose && (
                 <IconButton
                     onClick={onClose}
@@ -190,7 +169,6 @@ const IncidentDetails: React.FC<Props> = ({ onClose }) => {
                     </Typography>
 
                     <Stack direction="row" spacing={1} mb={2}>
-                        <Chip label={`Poziom: ${severityLabel}`} color={severityColor} />
                         <Chip label={statusLabel} variant="outlined" />
                     </Stack>
 
