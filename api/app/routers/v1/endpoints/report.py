@@ -21,6 +21,10 @@ from app.schemas.traffic import TrafficReport
 from app.utils.llm import assess_disruption
 from app.services.ws_manager import manager
 from app.utils.moderation import moderate_text
+from app.core.security import oauth2_scheme
+from app.repositories.auth import authenticate_user
+from app.schemas.user import User
+from app.core.rbac import get_current_active_user
 
 router = APIRouter()
 
@@ -47,7 +51,6 @@ async def create_report(
             status_code=422,
             detail="Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180.",
         )
-
 
     if description:
         moderate_description = moderate_text(description)
@@ -111,7 +114,7 @@ def list_reports(
         request: Request,
         lat: float = Query(0, ge=-90, le=90, description="User latitude"),
         lng: float = Query(0, ge=-180, le=180, description="User longitude"),
-        radius: float = Query(500.0, gt=0, le=5000, description="Search radius in kilometers (default 5 km)"),
+        radius: float = Query(50000.0, gt=0, le=50009, description="Search radius in kilometers (default 5 km)"),
         skip: int = Query(0, ge=0, description="Number of items to skip"),
         limit: int = Query(50, le=200, description="Max number of items to return"),
         svc: ReportService = Depends(get_service),

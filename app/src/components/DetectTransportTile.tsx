@@ -2,15 +2,62 @@ import * as React from "react";
 import {
   Card, CardContent, CardActions, Button, Typography, Stack, CircularProgress, Alert, Chip,
 } from "@mui/material";
-import type { DetectResult, Sample } from "../types/Transport";
-import { estimateSpeedKmh, classifyMode } from "../helpers/transport";
+import type { DetectResult, Sample, TransportMode } from "../types/Transport";
+import { estimateSpeedKmh, classifyMode, makeUnknownResult } from "../helpers/transport";
 
 type Props = {
   detectSeconds?: number;
-  onComplete?: (res: DetectResult) => void;
+  useNearbyHint?: boolean;               // jeśli true, spróbujemy Places API
+  onComplete?: (res: DetectResult & {
+    nearbyHint?: string | null;
+    alternates?: TransportMode[];
+  }) => void;
 };
 
-export default function DetectTransportTile({ detectSeconds = 12, onComplete }: Props) {
+// tylko tutaj – by nie dublować w innych plikach
+function alternatesFor(speedKmh: number): TransportMode[] {
+  const out: TransportMode[] = [];
+  if (speedKmh >= 2 && speedKmh < 10) out.push("walk", "bike");
+  else if (speedKmh >= 10 && speedKmh < 40) out.push("bike", "car");
+  else if (speedKmh >= 40 && speedKmh < 120) out.push("car", "train");
+  else if (speedKmh >= 120) out.push("train", "car");
+  return Array.from(new Set(out));
+}
+
+async function findTransitHint(sample: Sample): Promise<string | null> {
+  const g = (window as any).google;
+  if (!g?.maps?.places) return null;
+  const loc = new g.maps.LatLng(sample.lat, sample.lng);
+  const svc = new g.maps.places.PlacesService(document.createElement("div"));
+  return new Promise((resolve) => {
+    svc.nearbySearch(
+      {
+        location: loc,
+        radius: 250,
+        type: [
+          "transit_station",
+          "train_station",
+          "bus_station",
+          "subway_station",
+          "light_rail_station",
+        ],
+      } as any,
+      (results: any[], status: any) => {
+        if (status === g.maps.places.PlacesServiceStatus.OK && results?.length) {
+          resolve(`W pobliżu: ${results[0]?.name ?? "przystanek/stacja"}`);
+        } else {
+          resolve(null);
+        }
+      }
+    );
+  });
+}
+
+export default function DetectTransportTile({
+  detectSeconds = 12,
+  useNearbyHint = true,
+  onComplete,
+}: Props) {
   const [detecting, setDetecting] = React.useState(false);
   const [progress, setProgress] = React.useState(0);
   const [error, setError] = React.useState<string | null>(null);
@@ -50,11 +97,12 @@ export default function DetectTransportTile({ detectSeconds = 12, onComplete }: 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const acc = Number.isFinite(pos.coords.accuracy) ? pos.coords.accuracy : null;
-        if (acc != null && acc > 50) return;
+        if (acc != null && acc > 50) return; // odfiltruj mocno niepewne
         samplesRef.current.push({
           ts: Date.now(),
           lat: pos.coords.latitude,
           lng: pos.coords.longitude,
+          // @ts-ignore (jeśli Sample nie ma accuracy w typie, usuń tę linię lub dodaj w typach)
           accuracy: acc,
           speedFromAPI: Number.isFinite(pos.coords.speed) ? pos.coords.speed : null,
         });
@@ -62,6 +110,9 @@ export default function DetectTransportTile({ detectSeconds = 12, onComplete }: 
       (err) => {
         setError(`Błąd lokalizacji: ${err.message}`);
         stopAll();
+        const fallback = makeUnknownResult();
+        setResult(fallback);
+        onComplete?.({ ...fallback, alternates: ["walk", "bike", "car", "train"] });
       },
       { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
     );
@@ -80,7 +131,7 @@ export default function DetectTransportTile({ detectSeconds = 12, onComplete }: 
     setProgress(0);
   };
 
-  const stopAndEstimate = () => {
+  const stopAndEstimate = async () => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -90,20 +141,38 @@ export default function DetectTransportTile({ detectSeconds = 12, onComplete }: 
       timerRef.current = null;
     }
 
-    const samples = samplesRef.current;
-    if (samples.length < 2) {
-      setError("Zbyt mało próbek, spróbuj ponownie.");
-      setDetecting(false);
-      onComplete?.({ mode: "unknown", speedKmh: 0, samples });
-      return;
-    }
+    try {
+      const samples = samplesRef.current;
+      if (samples.length < 2) {
+        const fallback = makeUnknownResult();
+        setResult(fallback);
+        onComplete?.({ ...fallback, alternates: ["walk", "bike", "car", "train"] });
+        return;
+      }
 
-    const speedKmh = estimateSpeedKmh(samples);
-    const mode = classifyMode(speedKmh);
-    const res: DetectResult = { mode, speedKmh, samples };
-    setResult(res);
-    setDetecting(false);
-    onComplete?.(res);
+      const speedKmh = estimateSpeedKmh(samples);
+      const mode = classifyMode(speedKmh);
+
+      let nearbyHint: string | null = null;
+      if (useNearbyHint) {
+        try {
+          const last = samples.at(-1)!;
+          nearbyHint = await findTransitHint(last);
+        } catch {
+          /* opcjonalne */
+        }
+      }
+
+      const res: DetectResult = { mode, speedKmh, samples };
+      setResult(res);
+      onComplete?.({
+        ...res,
+        nearbyHint,
+        alternates: alternatesFor(speedKmh).filter((m) => m !== mode),
+      });
+    } finally {
+      setDetecting(false);
+    }
   };
 
   return (

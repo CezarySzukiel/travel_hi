@@ -3,107 +3,110 @@ import {
   Card,
   CardContent,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
-  Chip,
   Divider,
   LinearProgress,
   Box,
   Stack,
   Avatar,
   Paper,
+  Chip,
 } from "@mui/material";
-import { fetchIncidents, type Incident } from "../services/incidents";
+import { ENV } from "../config/env";
 
-// --------- typ i utils ----------
-type LiveIncident = {
-  user: string;
-  message: string;
-  lat: number;
-  lng: number;
+// ---------- Typy ----------
+type Incident = {
+  id: number;
+  type: string;
+  name?: string | null;
+  description?: string | null;
+  location: { lat: number; lng: number };
+  photo_url?: string | null;
   likes: number;
-  timestamp: string;
+  confirmations: number;
+  denials: number;
+  created_at: string;
 };
 
-const wsUrl = (path: string) => {
-  const proto = window.location.protocol === "https:" ? "wss" : "ws";
-  return `${proto}://${window.location.host}${path}`;
+type IncidentListResponse = {
+  items: Incident[];
+  total: number;
+};
+
+// ---------- Utils ----------
+/**
+ * Buduje poprawny adres WebSocket — bez podwójnych /api/v1
+ */
+const wsUrl = (path: string = "/api/v1/ws") => {
+  const proto = window.location.protocol === "https:" ? "ws" : "ws";
+  const cleanBase = ENV.API_BASE_URL.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+  // Usuwa duplikaty /api/v1 jeśli występują
+  const full = `${proto}://${cleanBase}${path.startsWith("/") ? path : `/${path}`}`.replace(/(\/api\/v1){2,}/, "/api/v1");
+  console.log("🔗 WebSocket URL:", full);
+  return full;
 };
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleString("pl-PL", { hour12: false });
 
-const initials = (name: string) =>
-  name?.trim()?.split(/\s+/).map(s => s[0]?.toUpperCase()).slice(0, 2).join("") || "U";
-
-// 🔹 Pomocnicza funkcja do rozpakowania `message` JSON
-function parseEchoPayload(raw: any): LiveIncident | null {
-  if (!raw || raw.type !== "echo" || typeof raw.message !== "string") return null;
-  try {
-    const inner = JSON.parse(raw.message);
-    return {
-      user: inner.user || "Anonim",
-      message: inner.message || "Brak treści",
-      lat: Number(inner.lat) || 0,
-      lng: Number(inner.lng) || 0,
-      likes: Number(inner.likes) || 0,
-      timestamp: inner.timestamp || new Date().toISOString(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-// ---------- komponent ----------
+// ---------- Komponent ----------
 export default function IncidentFeed() {
-  const [data, setData] = React.useState<Incident[]>([]);
-  const [live, setLive] = React.useState<LiveIncident[]>([]);
+  const [incidents, setIncidents] = React.useState<Incident[]>([]);
   const [loading, setLoading] = React.useState(true);
 
-  // Historia z REST
+  // 1️⃣ Pobierz dane z REST API przy załadowaniu
   React.useEffect(() => {
-    (async () => {
+    const loadIncidents = async () => {
       try {
         setLoading(true);
-        const res = await fetchIncidents(20);
-        setData(Array.isArray(res) ? res : []);
+        const url = `${ENV.API_BASE_URL.replace(/\/$/, "")}/incidents?lat=0&lng=0&radius=500&skip=0&limit=50`;
+        console.log("🌍 Fetch incidents from:", url);
+
+        const res = await fetch(url, {
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+
+        const data: IncidentListResponse = await res.json();
+        setIncidents(data.items || []);
+      } catch (err) {
+        console.error("❌ Błąd pobierania incydentów:", err);
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    loadIncidents();
   }, []);
 
-  // WebSocket — odbieranie na żywo
+  // 2️⃣ WebSocket: nasłuchiwanie nowych incydentów
   React.useEffect(() => {
-    const ws = new WebSocket(wsUrl("/api/v1/ws"));
-    ws.onopen = () => console.log("✅ WS connected");
+    const socketUrl = wsUrl("/api/v1/ws");
+    const ws = new WebSocket(socketUrl);
 
+    ws.onopen = () => console.log("✅ WebSocket connected");
     ws.onmessage = (ev) => {
       try {
         const payload = JSON.parse(ev.data);
 
-        // Pomijamy inne typy
-        if (payload.type !== "echo") return;
-
-        const incident = parseEchoPayload(payload);
-        if (!incident) return;
-
-        setLive((prev) => [incident, ...prev].slice(0, 50));
+        // Backend wysyła obiekty z "type": "new_incident"
+        if (payload.type === "new_incident" && payload.data) {
+          console.log("📡 Nowy incydent:", payload.data);
+          setIncidents((prev) => [payload.data, ...prev].slice(0, 50));
+        }
       } catch (err) {
-        console.error("❌ WS parse error", err, ev.data);
+        console.error("❌ WebSocket parse error:", err);
       }
     };
 
-    ws.onclose = () => console.log("🔌 WS closed");
-    ws.onerror = (err) => console.error("⚠️ WS error:", err);
+    ws.onerror = (err) => console.error("⚠️ WebSocket error:", err);
+    ws.onclose = () => console.log("🔌 WebSocket closed");
 
-    return () => ws.close(1000, "unmount");
+    return () => ws.close(1000, "Component unmounted");
   }, []);
 
-  // render jednego live incydentu (ładny MUI layout)
-  const renderLiveItem = (it: LiveIncident, idx: number) => (
-    <React.Fragment key={`live-${idx}`}>
+  // 3️⃣ Render pojedynczego incydentu
+  const renderIncident = (it: Incident, idx: number) => (
+    <React.Fragment key={it.id}>
       <Paper
         variant="outlined"
         sx={{
@@ -116,7 +119,7 @@ export default function IncidentFeed() {
       >
         <Stack direction="row" spacing={2} alignItems="center">
           <Avatar sx={{ width: 40, height: 40, bgcolor: "primary.main" }}>
-            {initials(it.user)}
+            {it.type[0]?.toUpperCase() || "?"}
           </Avatar>
 
           <Box flex={1}>
@@ -125,14 +128,16 @@ export default function IncidentFeed() {
               alignItems="center"
               justifyContent="space-between"
             >
-              <Typography fontWeight={600}>{it.user}</Typography>
+              <Typography fontWeight={600}>
+                {it.name || "Bez nazwy"}
+              </Typography>
               <Typography variant="caption" color="text.secondary">
-                {fmtDate(it.timestamp)}
+                {fmtDate(it.created_at)}
               </Typography>
             </Stack>
 
             <Typography variant="body2" mt={0.5}>
-              {it.message}
+              {it.description || "Brak opisu"}
             </Typography>
 
             <Stack direction="row" spacing={1} mt={1} alignItems="center">
@@ -143,51 +148,18 @@ export default function IncidentFeed() {
                 variant="outlined"
               />
               <Typography variant="caption" color="text.secondary">
-                📍 {it.lat.toFixed(4)}, {it.lng.toFixed(4)}
+                📍 {it.location.lat.toFixed(4)}, {it.location.lng.toFixed(4)}
               </Typography>
             </Stack>
           </Box>
         </Stack>
       </Paper>
+
+      {idx < incidents.length - 1 && <Divider />}
     </React.Fragment>
   );
 
-  // render incydentów z REST API
-  const renderStaticItem = (it: Incident, idx: number) => (
-    <React.Fragment key={it.id}>
-      <ListItem alignItems="flex-start">
-        <ListItemText
-          primary={
-            <Typography fontWeight={600}>
-              {it.title}
-              <Chip
-                size="small"
-                label={it.severity.toUpperCase()}
-                color={
-                  it.severity === "high"
-                    ? "error"
-                    : it.severity === "medium"
-                    ? "warning"
-                    : "default"
-                }
-                sx={{ ml: 1 }}
-              />
-            </Typography>
-          }
-          secondary={
-            it.description && (
-              <Typography variant="body2" color="text.secondary">
-                {it.description}
-              </Typography>
-            )
-          }
-        />
-      </ListItem>
-      {idx < data.length - 1 && <Divider component="li" />}
-    </React.Fragment>
-  );
-
-  // render główny
+  // 4️⃣ Render główny
   return (
     <Card sx={{ height: "100%", overflowY: "auto" }}>
       <CardContent>
@@ -195,33 +167,18 @@ export default function IncidentFeed() {
           Ostatnie incydenty
         </Typography>
 
-        {/* 🔴 Live feed */}
-        {live.length > 0 && (
-          <Box mt={2}>
-            <Typography
-              variant="subtitle2"
-              color="primary"
-              fontWeight={700}
-              sx={{ mb: 1 }}
-            >
-              🔴 Na żywo ({live.length})
-            </Typography>
-            {live.map(renderLiveItem)}
-            <Divider sx={{ my: 2 }} />
-          </Box>
-        )}
-
         {loading && <LinearProgress sx={{ mt: 1 }} />}
 
-        {/* Historia */}
         {!loading && (
-          <List dense>
-            {data.length === 0 ? (
-              <Typography color="text.secondary">Brak zgłoszeń.</Typography>
+          <Box mt={2}>
+            {incidents.length === 0 ? (
+              <Typography color="text.secondary">
+                Brak zgłoszeń.
+              </Typography>
             ) : (
-              data.map(renderStaticItem)
+              incidents.map(renderIncident)
             )}
-          </List>
+          </Box>
         )}
       </CardContent>
     </Card>
