@@ -2,7 +2,7 @@
 from typing import Literal
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 from app.schemas.traffic import TrafficReport, DisruptionPrediction
 
 # Structured output – bez max_length i bez przycinania po stronie serwera

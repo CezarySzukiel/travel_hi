@@ -1,8 +1,6 @@
-from fastapi import Depends, FastAPI
-
+from fastapi import FastAPI
+from app.core.config import settings
 from .routers.v1.api import api_router
-from sqlalchemy.orm import Session
-from .db.database import Base, engine, get_session
 
 app = FastAPI(
     title="Travel Hi API", version="1.0.0", description="API for managing travels."
