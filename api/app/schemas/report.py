@@ -8,13 +8,7 @@ class ReportType(str, Enum):
     TRAFFIC_JAM = "traffic_jam"
     ROADBLOCK = "roadblock"
     ROADWORK = "roadwork"
-    SLIPPERY_ROAD = "slippery_road"
-    OBJECT_ON_ROAD = "object_on_road"
-    # Transport publiczny
     DELAY = "delay"
-
-    # Bezpieczeństwo i awarie
-    POLICE = "police"
     OTHER = "other"
 
 
@@ -78,3 +72,12 @@ class LocationFilter(BaseModel):
     lat: float = Field(..., ge=-90, le=90)
     lng: float = Field(..., ge=-180, le=180)
     radius_km: float = Field(1, gt=0, le=50, description="Search radius in km (default 1 km, max 50 km)")
+
+
+class WSMessage(BaseModel):
+    user: str = Field(..., description="Username or sender ID")
+    message: str = Field(..., description="User message text")
+    lat: float = Field(..., ge=-90, le=90, description="User latitude")
+    lng: float = Field(..., ge=-180, le=180, description="User longitude")
+    likes: int = Field(0, ge=0, description="Number of likes")
+    timestamp: str = Field(..., description="ISO timestamp string")

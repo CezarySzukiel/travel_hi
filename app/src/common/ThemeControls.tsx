@@ -1,5 +1,6 @@
+// src/common/ThemeControls.tsx
 import { useContext } from "react";
-import { AppThemeContext } from "../ThemeContext";
+import { AppThemeContext, type ThemeMode } from "../ThemeContext";
 import { IconButton, Tooltip, Box } from "@mui/material";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
@@ -9,7 +10,8 @@ import TextIncreaseIcon from "@mui/icons-material/TextIncrease";
 export default function ThemeControls() {
   const { mode, fontSize, toggleMode, cycleFontSize } = useContext(AppThemeContext);
 
-  const contrastColor = mode === "contrast" ? "#FFD600" : undefined;
+  const contrastColor = "#FFD600";
+  const iconColorSx = mode === "contrast" ? { color: contrastColor } : undefined;
 
   const fontSizeLabel =
     fontSize === "small"
@@ -18,14 +20,15 @@ export default function ThemeControls() {
       ? "Normalna czcionka"
       : "Duża czcionka";
 
-  // @ts-ignore
-    return (
+  const isSelected = (m: ThemeMode) => mode === m;
+
+  return (
     <Box display="flex" gap={1}>
       <Tooltip title="Light mode">
         <IconButton
-          color={mode === "light" && mode !== "contrast" ? "primary" : "default"}
+          color={isSelected("light") ? "primary" : "default"}
           onClick={() => toggleMode("light")}
-          sx={{ color: mode === "contrast" ? contrastColor : undefined }}
+          sx={iconColorSx}
         >
           <LightModeIcon />
         </IconButton>
@@ -33,9 +36,9 @@ export default function ThemeControls() {
 
       <Tooltip title="Dark mode">
         <IconButton
-          color={mode === "dark" && mode !== "contrast" ? "primary" : "default"}
+          color={isSelected("dark") ? "primary" : "default"}
           onClick={() => toggleMode("dark")}
-          sx={{ color: mode === "contrast" ? contrastColor : undefined }}
+          sx={iconColorSx}
         >
           <DarkModeIcon />
         </IconButton>
@@ -43,19 +46,16 @@ export default function ThemeControls() {
 
       <Tooltip title="High contrast">
         <IconButton
-          color={mode === "contrast" ? "primary" : "default"}
+          color={isSelected("contrast") ? "primary" : "default"}
           onClick={() => toggleMode("contrast")}
-          sx={{ color: mode === "contrast" ? contrastColor : undefined }}
+          sx={iconColorSx}
         >
           <InvertColorsIcon />
         </IconButton>
       </Tooltip>
 
       <Tooltip title={fontSizeLabel}>
-        <IconButton
-          onClick={cycleFontSize}
-          sx={{ color: mode === "contrast" ? contrastColor : undefined }}
-        >
+        <IconButton onClick={cycleFontSize} sx={iconColorSx}>
           <TextIncreaseIcon />
         </IconButton>
       </Tooltip>

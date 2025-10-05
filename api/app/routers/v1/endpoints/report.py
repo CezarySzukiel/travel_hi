@@ -1,3 +1,4 @@
+from datetime import datetime
 import asyncio
 from fastapi import (
     APIRouter,
@@ -16,6 +17,10 @@ from app.repositories.report import ReportRepository
 from app.services.report import ReportService
 from app.schemas.report import ReportRead, ReportType, Location, ReportList
 from app.utils.images import validate_and_store_image
+from app.schemas.traffic import TrafficReport
+from app.utils.llm import assess_disruption
+from app.services.ws_manager import manager
+
 
 router = APIRouter()
 
@@ -25,7 +30,7 @@ def get_service(session: Session = Depends(get_session)) -> ReportService:
 
 
 @router.post("/incidents", response_model=ReportRead, status_code=201)
-def create_report(
+async def create_report(
     request: Request,
     type: ReportType = Form(...),
     lat: float = Form(...),
@@ -35,6 +40,7 @@ def create_report(
     photo: UploadFile | None = File(default=None),
     svc: ReportService = Depends(get_service),
 ):
+
     try:
         Location(lat=lat, lng=lng)
     except ValidationError:
@@ -42,6 +48,9 @@ def create_report(
             status_code=422,
             detail="Invalid coordinates. Latitude must be between -90 and 90, longitude between -180 and 180.",
         )
+
+
+   # todo tu będzie sprawdzanie funkcja llma, sprawdzająca cazurę zgłoszenia, jeśli jest ok to tworzymy zgłoszenie, jeśli nie fo tunkcja zwraca None, ale tej funkcji jeszcze nie ma
 
     photo_name = validate_and_store_image(photo) if photo and photo.filename else None
 
@@ -55,7 +64,20 @@ def create_report(
     )
 
     base = str(request.base_url).rstrip("/")
-    return ReportRead.from_orm_with_photo(obj, base_url=base)
+    result = ReportRead.from_orm_with_photo(obj, base_url=base)
+
+    broadcast_data = {
+        "user": "Anonim",
+        "message": description or name or "Nowe zgłoszenie",
+        "lat": lat,
+        "lng": lng,
+        "likes": obj.likes,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    }
+
+    asyncio.create_task(manager.broadcast(broadcast_data))
+
+    return result
 
 
 @router.get("/incidents/{incident_id}", response_model=ReportRead, status_code=200)
@@ -74,8 +96,8 @@ def get_report(
 @router.get("/incidents", response_model=ReportList, status_code=200)
 def list_reports(
     request: Request,
-    lat: float = Query(..., ge=-90, le=90, description="User latitude"),
-    lng: float = Query(..., ge=-180, le=180, description="User longitude"),
+    lat: float = Query(0, ge=-90, le=90, description="User latitude"),
+    lng: float = Query(0, ge=-180, le=180, description="User longitude"),
     radius: float = Query(5.0, gt=0, le=50, description="Search radius in kilometers (default 5 km)"),
     skip: int = Query(0, ge=0, description="Number of items to skip"),
     limit: int = Query(50, le=200, description="Max number of items to return"),
