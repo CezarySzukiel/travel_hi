@@ -1,3 +1,4 @@
+from app.core.config import settings
 from typing import Literal, Optional
 from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
@@ -44,6 +45,7 @@ _llm = ChatOpenAI(
     model="gpt-5-mini",
     temperature=0.2,
     max_tokens=512,  # ← było 260; podnosimy, żeby dokończył JSON
+    api_key=settings.OPENAI_API_KEY,
 )
 _structured = _llm.with_structured_output(_AssessmentModel)
 _structured_short = _llm.with_structured_output(_AssessmentModel)  # używamy tego samego modelu

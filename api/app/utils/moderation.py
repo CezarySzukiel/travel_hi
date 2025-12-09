@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Optional, List, Pattern
 import re
 import unicodedata
+from app.core.config import settings
 
 USE_LLM_MODERATION = True
 try:
@@ -59,7 +60,8 @@ if USE_LLM_MODERATION:
         reasoning: str = Field(default="")
 
 
-    _mod_llm = ChatOpenAI(model="gpt-5-mini", temperature=0.0, max_tokens=160)
+    from app.core.config import settings
+    _mod_llm = ChatOpenAI(model="gpt-5-mini", temperature=0.0, max_tokens=160, api_key=settings.OPENAI_API_KEY)
     _mod_prompt = ChatPromptTemplate.from_messages([
         ("system",
          "Jesteś surowym moderatorem. Jeśli tekst zawiera wulgaryzmy/obelgi, mowę nienawiści, groźby przemocy "

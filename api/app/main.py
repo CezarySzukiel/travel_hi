@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
+
 from .routers.v1.api import api_router
 
 app = FastAPI(
-    title="Travel Hi API", version="1.0.0", description="API for managing travels."
+    title="Travel Hi API", version="1.0.0", description="API for managing travels.", debug=True
 )
 
 origins = [

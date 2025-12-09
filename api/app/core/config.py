@@ -16,9 +16,13 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=True,
     )
+    
+
+
 
     OPENAI_API_KEY: str = Field(..., description="Klucz OpenAI API")
     SECRET_KEY: str = Field(..., description="Secret dla JWT")
+
 
     DB_POOL_SIZE: int = 10
     DB_MAX_OVERFLOW: int = 20
@@ -36,6 +40,5 @@ class Settings(BaseSettings):
     @property
     def DATABASE_URL(self) -> str:
         return "sqlite+aiosqlite:///./app.db"
-
 
 settings = Settings()
