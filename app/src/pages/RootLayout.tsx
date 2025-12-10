@@ -1,7 +1,7 @@
 // src/pages/RootLayout.tsx
 import { useState } from "react";
 import { Link as RouterLink, Outlet } from "react-router-dom";
-import { AppBar, Box, CssBaseline, Drawer, IconButton, Toolbar } from "@mui/material";
+import { AppBar, Box, CssBaseline, Drawer, IconButton, Toolbar, Typography } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import Menu from "../common/Menu";
 import ThemeControls from "../common/ThemeControls";
@@ -24,6 +24,8 @@ export function RootLayout() {
       </Box>
     </Box>
   );
+  console.log("g api key: ", import.meta.env.VITE_GOOGLE_MAPS_API_KEY);
+
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -65,7 +67,6 @@ export function RootLayout() {
               }}
             />
           </RouterLink>
-
           <Box display={{ xs: "none", md: "flex" }}>
             <ThemeControls />
           </Box>
